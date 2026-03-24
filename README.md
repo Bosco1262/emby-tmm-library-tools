@@ -6,24 +6,20 @@ Utility Python scripts to clean and maintain tinyMediaManager files for Emby med
 
 This repository currently includes scripts to:
 
-1. Add `.tmmignore` to subfolders that contain `.ignore`
-2. Add `.ignore` to subfolders under media directories (`MovieName/*`, `ShowName/S1/*`)
-3. In subfolders **without** `.ignore`:
+1. Add `.ignore` and `.tmmignore` to subfolders under media directories (`MovieName/*`, `ShowName/S1/*`)
+2. In subfolders **without** `.ignore`:
    - Delete `.nfo`, `.png`, `.jpg` files
    - Delete `.actors` directory if it exists
 
 ## Scripts
-
-- `add_tmmignore.py`  
-  Scans all subfolders under a root directory.  
-  If a subfolder contains `.ignore` and does not contain `.tmmignore`, it creates an empty `.tmmignore`.
 
 - `add_ignore.py`  
   Scans first-level media directories under the root.  
   Supports two structures:
   - `Root/MovieName/*`
   - `Root/ShowName/S1/*` (and other `S<number>` seasons)  
-  Creates an empty `.ignore` in subfolders where it does not already exist.
+  First performs a scan and prints all planned file creations, then asks for confirmation.  
+  After you type `yes`, it creates missing `.ignore` and `.tmmignore` files in subfolders.
 
 - `clean_subfolders.py`  
   Scans all subfolders under a root directory.  
@@ -35,19 +31,13 @@ This repository currently includes scripts to:
 
 ## Usage
 
-### 1) Add `.tmmignore`
-
-```bash
-python add_tmmignore.py /path/to/your/library
-```
-
-### 2) Add `.ignore` to media subfolders
+### 1) Add `.ignore` and `.tmmignore` to media subfolders (scan + confirm)
 
 ```bash
 python add_ignore.py /path/to/your/library
 ```
 
-### 3) Clean folders without `.ignore`
+### 2) Clean folders without `.ignore`
 
 ```bash
 python clean_subfolders.py /path/to/your/library

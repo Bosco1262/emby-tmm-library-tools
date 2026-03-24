@@ -21,30 +21,66 @@ def iter_media_base_dirs(root_dir: str):
             yield entry.path
 
 
-def add_ignore_to_subdirs(root_dir: str):
-    created_count = 0
-    skipped_count = 0
-    error_count = 0
+def collect_creation_targets(root_dir: str):
+    targets = []
+    scanned_subdirs = 0
 
     for base_dir in iter_media_base_dirs(root_dir):
         for current_dir, _, filenames in os.walk(base_dir):
             if current_dir == base_dir:
                 continue
 
+            scanned_subdirs += 1
             ignore_path = os.path.join(current_dir, ".ignore")
-            if ".ignore" in filenames:
-                skipped_count += 1
-                print(f"[SKIPPED] Already exists: {ignore_path}")
-                continue
+            tmmignore_path = os.path.join(current_dir, ".tmmignore")
 
-            try:
-                with open(ignore_path, "w", encoding="utf-8"):
-                    pass
-                created_count += 1
-                print(f"[CREATED] {ignore_path}")
-            except OSError as e:
-                error_count += 1
-                print(f"[ERROR] Failed to create: {ignore_path} ({e})")
+            if ".ignore" not in filenames:
+                targets.append(ignore_path)
+                print(f"[PLAN] Create: {ignore_path}")
+            if ".tmmignore" not in filenames:
+                targets.append(tmmignore_path)
+                print(f"[PLAN] Create: {tmmignore_path}")
+
+    return targets, scanned_subdirs
+
+
+def apply_creation(targets):
+    created_count = 0
+    error_count = 0
+
+    for path in targets:
+        try:
+            with open(path, "w", encoding="utf-8"):
+                pass
+            created_count += 1
+            print(f"[CREATED] {path}")
+        except OSError as e:
+            error_count += 1
+            print(f"[ERROR] Failed to create: {path} ({e})")
+
+    return created_count, error_count
+
+
+def add_ignore_and_tmmignore(root_dir: str):
+    targets, scanned_subdirs = collect_creation_targets(root_dir)
+    skipped_count = (scanned_subdirs * 2) - len(targets)
+
+    print("\n=== Scan Summary ===")
+    print(f"Scanned subdirectories: {scanned_subdirs}")
+    print(f"Planned creations: {len(targets)}")
+    print(f"Skipped (already existed): {skipped_count}")
+
+    if not targets:
+        print("\nNothing to create.")
+        return
+
+    confirm = input("\nConfirm creation? Type yes to continue: ").strip().lower()
+    if confirm != "yes":
+        print("Canceled. No files were created.")
+        return
+
+    print("\nCreating files...")
+    created_count, error_count = apply_creation(targets)
 
     print("\nDone.")
     print(f"Created: {created_count}")
@@ -55,11 +91,11 @@ def add_ignore_to_subdirs(root_dir: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=(
-            "Create .ignore in media subfolders: supports "
+            "Plan and create .ignore/.tmmignore in media subfolders: supports "
             "Root/MovieName/ and Root/ShowName/S1 layouts"
         )
     )
     parser.add_argument("root_dir", help="Path to the media library root directory")
     args = parser.parse_args()
 
-    add_ignore_to_subdirs(args.root_dir)
+    add_ignore_and_tmmignore(args.root_dir)

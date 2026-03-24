@@ -6,16 +6,20 @@ Utility Python scripts to clean and maintain tinyMediaManager files for Emby med
 
 This repository currently includes scripts to:
 
-1. Add `.tmmignore` to subfolders that contain `.ignore`
+1. Add `.ignore` and `.tmmignore` to subfolders under media directories (`MovieName/*`, `ShowName/S1/*`)
 2. In subfolders **without** `.ignore`:
    - Delete `.nfo`, `.png`, `.jpg` files
    - Delete `.actors` directory if it exists
 
 ## Scripts
 
-- `add_tmmignore.py`  
-  Scans all subfolders under a root directory.  
-  If a subfolder contains `.ignore` and does not contain `.tmmignore`, it creates an empty `.tmmignore`.
+- `add_ignore.py`  
+  Scans first-level media directories under the root.  
+  Supports two structures:
+  - `Root/MovieName/*`
+  - `Root/ShowName/S1/*` (and other `S<number>` seasons)  
+  First performs a scan and prints all planned file creations, then asks for confirmation.  
+  After you type `yes`, it creates missing `.ignore` and `.tmmignore` files in subfolders.
 
 - `clean_subfolders.py`  
   Scans all subfolders under a root directory.  
@@ -27,11 +31,13 @@ This repository currently includes scripts to:
 
 ## Usage
 
-### 1) Add `.tmmignore`
+### 1) Add `.ignore` and `.tmmignore` to media subfolders (scan + confirm)
 
 ```bash
-python add_tmmignore.py /path/to/your/library
+python add_ignore.py /path/to/your/library
 ```
+
+> Recommended order: run this script first, then run `clean_subfolders.py`, to avoid unnecessary file loss in folders that should be protected.
 
 ### 2) Clean folders without `.ignore`
 
@@ -48,7 +54,7 @@ Delete .nfo files? [y/N]:
 - Enter `y` or `yes` to include `.nfo` files in the deletion.
 - Press Enter (or type anything else) to skip `.nfo` files (default, safe choice).
 
-It then prints a dry-run preview of everything that would be deleted and asks for a final `yes` confirmation before making any changes.
+Then it scans and prints planned deletions directory-by-directory (shows current path first, then filenames to be deleted under that path), and asks for a final `yes` confirmation before making any changes.
 
 ## Notes
 

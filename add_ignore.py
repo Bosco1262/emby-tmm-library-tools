@@ -11,13 +11,20 @@ def iter_media_base_dirs(root_dir: str):
         if not entry.is_dir():
             continue
 
-        has_season_dirs = False
+        season_dirs = []
+        non_season_dirs = []
         for child in os.scandir(entry.path):
-            if child.is_dir() and SEASON_DIR_PATTERN.match(child.name):
-                has_season_dirs = True
-                yield child.path
+            if not child.is_dir():
+                continue
+            if SEASON_DIR_PATTERN.match(child.name):
+                season_dirs.append(child.path)
+            else:
+                non_season_dirs.append(child.path)
 
-        if not has_season_dirs:
+        if season_dirs:
+            yield from season_dirs
+            yield from non_season_dirs
+        else:
             yield entry.path
 
 

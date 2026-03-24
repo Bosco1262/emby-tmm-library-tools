@@ -86,7 +86,7 @@ Given a library like:
 
 - Please back up your media library (or test on a sample directory) before running cleanup scripts.
 - File extension matching is case-insensitive.
-- `add_ignore.py` scans only the first-level subfolders under each media base directory (`MovieName/*`, `ShowName/S1/*`; if a show has seasons, sibling non-season directories like `ShowName/Extra/*` are also included as base directories).
+- `add_ignore.py` scans the first-level subfolders under each media base directory (`MovieName/*`, `ShowName/S1/*`; if a show has seasons, sibling non-season directories like `ShowName/Extra/*` are also included as base directories). If a media base directory itself is a hidden folder (for example `.actors`), it is scanned directly.
 - `clean_subfolders.py` walks recursively and skips any subtree that contains `.ignore`.
 
 ## License

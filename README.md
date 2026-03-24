@@ -37,6 +37,8 @@ This repository currently includes scripts to:
 python add_ignore.py /path/to/your/library
 ```
 
+> Recommended order: run this script first, then run `clean_subfolders.py`, to avoid unnecessary file loss in folders that should be protected.
+
 ### 2) Clean folders without `.ignore`
 
 ```bash
@@ -52,7 +54,7 @@ Delete .nfo files? [y/N]:
 - Enter `y` or `yes` to include `.nfo` files in the deletion.
 - Press Enter (or type anything else) to skip `.nfo` files (default, safe choice).
 
-It then prints a dry-run preview of everything that would be deleted and asks for a final `yes` confirmation before making any changes.
+Then it scans and prints planned deletions directory-by-directory (shows current path first, then filenames to be deleted under that path), and asks for a final `yes` confirmation before making any changes.
 
 ## Notes
 

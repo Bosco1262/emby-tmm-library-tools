@@ -6,7 +6,9 @@ Utility Python scripts to clean and maintain tinyMediaManager files for Emby med
 
 This repository currently includes scripts to:
 
-1. Add `.ignore` and `.tmmignore` to media subfolders/targets (`MovieName/*`, `ShowName/S1/*`, and sibling non-season dirs like `ShowName/Extra` when seasons exist)
+1. Add `.ignore` and `.tmmignore`:
+   - in first-level subfolders under movie/season bases (`MovieName/*`, `ShowName/S1/*`)
+   - directly in season-layout sibling non-season dirs (`ShowName/Extra`, `ShowName/SPs`, etc.)
 2. In subfolders **without** `.ignore`:
    - Delete `.nfo`, `.png`, `.jpg` files
    - Delete `.actors` directory if it exists
@@ -92,7 +94,7 @@ Given a library like:
      - each season dir (`S1`, `S2`, ...) is treated as a media base dir and the script scans its first-level child directories (`S1/*`) as creation targets;
      - each sibling non-season dir (for example `SPs`, `Extras`) is treated as a direct creation target (creates `.ignore`/`.tmmignore` in `ShowName/SPs` itself, not only in `ShowName/SPs/*`).
   3. If that folder contains no `S<number>` directories, it is treated as a movie base dir and the script scans its first-level child directories (`MovieName/*`) as creation targets.
-  4. Any directory named `.actors` is always skipped (both “with seasons” and “without seasons” cases), so `.ignore`/`.tmmignore` will not be created inside `.actors`.
+  4. Any directory named `.actors` is always skipped (both “with seasons” and “without seasons” cases), so `.actors` is not treated as a creation target and no `.ignore`/`.tmmignore` files are created in it.
 - `clean_subfolders.py` walks recursively and skips any subtree that contains `.ignore`.
 
 ## License

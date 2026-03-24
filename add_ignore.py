@@ -1,6 +1,5 @@
 import argparse
 import os
-from pathlib import Path
 import re
 
 
@@ -37,18 +36,18 @@ def collect_creation_targets(root_dir: str):
     skipped_count = 0
 
     for base_dir, scan_self in iter_media_base_dirs(root_dir):
-        if Path(base_dir).name == ".actors":
-            print(f"[SKIP] Skip .actors directory: {base_dir}")
-            continue
-
         if scan_self:
             dirs_to_scan = [base_dir]
         else:
             with os.scandir(base_dir) as entries:
-                dirs_to_scan = [entry.path for entry in entries if entry.is_dir()]
+                dirs_to_scan = [
+                    entry.path
+                    for entry in entries
+                    if entry.is_dir() and entry.name != ".actors"
+                ]
 
         for current_dir in dirs_to_scan:
-            if Path(current_dir).name == ".actors":
+            if scan_self and os.path.basename(current_dir) == ".actors":
                 print(f"[SKIP] Skip .actors directory: {current_dir}")
                 continue
             with os.scandir(current_dir) as children:

@@ -6,7 +6,7 @@ Utility Python scripts to clean and maintain tinyMediaManager files for Emby med
 
 This repository currently includes scripts to:
 
-1. Add `.ignore` and `.tmmignore` to subfolders under media directories (`MovieName/*`, `ShowName/S1/*`)
+1. Add `.ignore` and `.tmmignore` to subfolders under media directories (`MovieName/*`, `ShowName/S1/*`, and sibling non-season dirs like `ShowName/Extra/*` when seasons exist)
 2. In subfolders **without** `.ignore`:
    - Delete `.nfo`, `.png`, `.jpg` files
    - Delete `.actors` directory if it exists
@@ -17,7 +17,7 @@ This repository currently includes scripts to:
   Scans first-level media directories under the root.  
   Supports two structures:
   - `Root/MovieName/*`
-  - `Root/ShowName/S1/*` (and other `S<number>` seasons)  
+  - `Root/ShowName/S1/*` (and other `S<number>` seasons), plus sibling non-season directories when seasons exist (for example `Root/ShowName/Extra/*`)  
   First performs a scan and prints all planned file creations, then asks for confirmation.  
   After you type `yes`, it creates missing `.ignore` and `.tmmignore` files in subfolders.
 
@@ -86,7 +86,7 @@ Given a library like:
 
 - Please back up your media library (or test on a sample directory) before running cleanup scripts.
 - File extension matching is case-insensitive.
-- `add_ignore.py` scans only the first-level subfolders under each media base directory (`MovieName/*`, `ShowName/S1/*`).
+- `add_ignore.py` scans only the first-level subfolders under each media base directory (`MovieName/*`, `ShowName/S1/*`; if a show has seasons, sibling non-season directories like `ShowName/Extra/*` are also included as base directories).
 - `clean_subfolders.py` walks recursively and skips any subtree that contains `.ignore`.
 
 ## License

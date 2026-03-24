@@ -103,6 +103,10 @@ def main(root_dir: str):
     print(f"Directories planned for deletion: {len(dirs_to_delete)}")
     print(f"Skipped directory trees with .ignore: {len(skipped_ignore_trees)}")
 
+    if not files_to_delete and not dirs_to_delete:
+        print("\nNothing to delete.")
+        return
+
     # 第二阶段：确认后执行删除
     confirm = input("\nConfirm deletion? Type yes to continue: ").strip().lower()
     if confirm != "yes":

@@ -3,10 +3,13 @@ import argparse
 import shutil
 
 
-TARGET_EXTENSIONS = {".nfo", ".png", ".jpg"}
+BASE_EXTENSIONS = {".png", ".jpg"}
+NFO_EXTENSION = ".nfo"
 
 
-def collect_targets(root_dir: str):
+def collect_targets(root_dir: str, delete_nfo: bool = False):
+    target_extensions = BASE_EXTENSIONS | ({NFO_EXTENSION} if delete_nfo else set())
+
     files_to_delete = []
     dirs_to_delete = []
     skipped_ignore_trees = []
@@ -22,10 +25,10 @@ def collect_targets(root_dir: str):
             dirnames.clear()  # 阻止 os.walk 继续进入其子目录
             continue
 
-        # 收集当前目录下要删除的 .nfo / .png / .jpg 文件
+        # 收集当前目录下要删除的文件
         for filename in filenames:
             _, ext = os.path.splitext(filename)
-            if ext.lower() in TARGET_EXTENSIONS:
+            if ext.lower() in target_extensions:
                 files_to_delete.append(os.path.join(current_dir, filename))
 
         # 收集 .actors 文件夹（并避免继续遍历它）
@@ -62,10 +65,20 @@ def apply_deletion(files_to_delete, dirs_to_delete):
 
 
 def main(root_dir: str):
-    files_to_delete, dirs_to_delete, skipped_ignore_trees = collect_targets(root_dir)
+    # 询问是否删除 .nfo 文件（默认：否）
+    nfo_answer = input("Delete .nfo files? [y/N]: ").strip().lower()
+    delete_nfo = nfo_answer in ("y", "yes")
+    if delete_nfo:
+        print(".nfo files WILL be deleted.")
+    else:
+        print(".nfo files will NOT be deleted.")
+
+    files_to_delete, dirs_to_delete, skipped_ignore_trees = collect_targets(
+        root_dir, delete_nfo=delete_nfo
+    )
 
     # 第一阶段：只打印计划删除内容
-    print("=== Dry Run: 以下是将要删除的内容 ===")
+    print("\n=== Dry Run: 以下是将要删除的内容 ===")
     if files_to_delete:
         print("\n[FILES TO DELETE]")
         for p in files_to_delete:
@@ -87,8 +100,9 @@ def main(root_dir: str):
     else:
         print("\n[SKIPPED TREES] None")
 
+    file_types_label = ".nfo/.png/.jpg" if delete_nfo else ".png/.jpg"
     print("\n=== Summary ===")
-    print(f"Files planned for deletion: {len(files_to_delete)}")
+    print(f"Files planned for deletion ({file_types_label}): {len(files_to_delete)}")
     print(f"Directories planned for deletion: {len(dirs_to_delete)}")
     print(f"Skipped directory trees with .ignore: {len(skipped_ignore_trees)}")
 
@@ -102,7 +116,7 @@ def main(root_dir: str):
     deleted_files, deleted_dirs = apply_deletion(files_to_delete, dirs_to_delete)
 
     print("\nDone.")
-    print(f"Deleted files (.nfo/.png/.jpg): {deleted_files}")
+    print(f"Deleted files ({file_types_label}): {deleted_files}")
     print(f"Deleted '.actors' directories: {deleted_dirs}")
     print(f"Skipped directory trees with .ignore: {len(skipped_ignore_trees)}")
 

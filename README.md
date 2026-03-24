@@ -19,7 +19,7 @@ This repository currently includes scripts to:
 
 - `clean_subfolders.py`  
   Scans all subfolders under a root directory.  
-  For subfolders without `.ignore`, deletes metadata/image files (`.nfo`, `.png`, `.jpg`) and removes `.actors` directory.
+  For subfolders without `.ignore`, deletes image files (`.png`, `.jpg`) and optionally `.nfo` files (you are prompted at startup), and removes `.actors` directory.
 
 ## Requirements
 
@@ -38,6 +38,17 @@ python add_tmmignore.py /path/to/your/library
 ```bash
 python clean_subfolders.py /path/to/your/library
 ```
+
+The script will first ask:
+
+```
+Delete .nfo files? [y/N]:
+```
+
+- Enter `y` or `yes` to include `.nfo` files in the deletion.
+- Press Enter (or type anything else) to skip `.nfo` files (default, safe choice).
+
+It then prints a dry-run preview of everything that would be deleted and asks for a final `yes` confirmation before making any changes.
 
 ## Notes
 

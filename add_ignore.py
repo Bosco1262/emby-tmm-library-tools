@@ -32,15 +32,17 @@ def collect_creation_targets(root_dir: str):
                 continue
 
             scanned_subdirs += 1
+            has_ignore = ".ignore" in filenames
+            has_tmmignore = ".tmmignore" in filenames
             ignore_path = os.path.join(current_dir, ".ignore")
             tmmignore_path = os.path.join(current_dir, ".tmmignore")
 
-            if ".ignore" not in filenames:
+            if not has_ignore:
                 targets.append(ignore_path)
                 print(f"[PLAN] Create: {ignore_path}")
             else:
                 skipped_count += 1
-            if ".tmmignore" not in filenames:
+            if not has_tmmignore:
                 targets.append(tmmignore_path)
                 print(f"[PLAN] Create: {tmmignore_path}")
             else:

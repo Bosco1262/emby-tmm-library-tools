@@ -56,11 +56,38 @@ Delete .nfo files? [y/N]:
 
 Then it scans and prints planned deletions directory-by-directory (shows current path first, then filenames to be deleted under that path), and asks for a final `yes` confirmation before making any changes.
 
+## Example (recommended order)
+
+Given a library like:
+
+```text
+/media
+├── MovieA
+│   └── Extras
+│       ├── poster.jpg
+│       └── .actors
+└── ShowA
+    └── S1
+        └── SPs
+            ├── poster.jpg
+            └── info.nfo
+```
+
+1. Run `python add_ignore.py /media` and confirm with `yes`.  
+   This creates marker files in first-level media subfolders, for example:
+   - `/media/MovieA/Extras/.ignore`
+   - `/media/MovieA/Extras/.tmmignore`
+   - `/media/ShowA/S1/SPs/.ignore`
+   - `/media/ShowA/S1/SPs/.tmmignore`
+2. Run `python clean_subfolders.py /media`.  
+   During scan, these marked folders are skipped (you will see `[SKIP] ... found .ignore, skip subtree`), so files in those protected trees are not deleted.
+
 ## Notes
 
 - Please back up your media library (or test on a sample directory) before running cleanup scripts.
 - File extension matching is case-insensitive.
-- Scripts process subfolders recursively.
+- `add_ignore.py` scans only the first-level subfolders under each media base directory (`MovieName/*`, `ShowName/S1/*`).
+- `clean_subfolders.py` walks recursively and skips any subtree that contains `.ignore`.
 
 ## License
 

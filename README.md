@@ -60,7 +60,8 @@ Then it scans and prints planned deletions directory-by-directory (shows current
 
 - Please back up your media library (or test on a sample directory) before running cleanup scripts.
 - File extension matching is case-insensitive.
-- `add_ignore.py` scans only the first-level subfolders under each media base directory (`MovieName/*`, `ShowName/S1/*`), while `clean_subfolders.py` walks recursively and skips any subtree that contains `.ignore`.
+- `add_ignore.py` scans only the first-level subfolders under each media base directory (`MovieName/*`, `ShowName/S1/*`).
+- `clean_subfolders.py` walks recursively and skips any subtree that contains `.ignore`.
 
 ## License
 

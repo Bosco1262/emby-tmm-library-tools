@@ -6,7 +6,7 @@ Utility Python scripts to clean and maintain tinyMediaManager files for Emby med
 
 This repository currently includes scripts to:
 
-1. Add `.ignore` and `.tmmignore` to subfolders under media directories (`MovieName/*`, `ShowName/S1/*`, and sibling non-season dirs like `ShowName/Extra/*` when seasons exist)
+1. Add `.ignore` and `.tmmignore` to media subfolders/targets (`MovieName/*`, `ShowName/S1/*`, and sibling non-season dirs like `ShowName/Extra` when seasons exist)
 2. In subfolders **without** `.ignore`:
    - Delete `.nfo`, `.png`, `.jpg` files
    - Delete `.actors` directory if it exists
@@ -17,9 +17,9 @@ This repository currently includes scripts to:
   Scans first-level media directories under the root.  
   Supports two structures:
   - `Root/MovieName/*`
-  - `Root/ShowName/S1/*` (and other `S<number>` seasons), plus sibling non-season directories when seasons exist (for example `Root/ShowName/Extra/*`)  
+  - `Root/ShowName/S1/*` (and other `S<number>` seasons), plus sibling non-season directories when seasons exist (for example `Root/ShowName/Extra`)  
   First performs a scan and prints all planned file creations, then asks for confirmation.  
-  After you type `yes`, it creates missing `.ignore` and `.tmmignore` files in subfolders.
+  After you type `yes`, it creates missing `.ignore` and `.tmmignore` files in target directories.
 
 - `clean_subfolders.py`  
   Scans all subfolders under a root directory.  
@@ -86,7 +86,13 @@ Given a library like:
 
 - Please back up your media library (or test on a sample directory) before running cleanup scripts.
 - File extension matching is case-insensitive.
-- `add_ignore.py` scans the first-level subfolders under each media base directory (`MovieName/*`, `ShowName/S1/*`; if a show has seasons, sibling non-season directories like `ShowName/Extra/*` are also included as base directories). If a media base directory itself is a hidden folder (for example `.actors`), it is scanned directly.
+- `add_ignore.py` decision logic:
+  1. Under `root`, each first-level folder is inspected.
+  2. If that folder contains any `S<number>` directories:
+     - each season dir (`S1`, `S2`, ...) is treated as a media base dir and the script scans its first-level child directories (`S1/*`) as creation targets;
+     - each sibling non-season dir (for example `SPs`, `Extras`) is treated as a direct creation target (creates `.ignore`/`.tmmignore` in `ShowName/SPs` itself, not only in `ShowName/SPs/*`).
+  3. If that folder contains no `S<number>` directories, it is treated as a movie base dir and the script scans its first-level child directories (`MovieName/*`) as creation targets.
+  4. Any directory named `.actors` is always skipped (both “with seasons” and “without seasons” cases), so `.ignore`/`.tmmignore` will not be created inside `.actors`.
 - `clean_subfolders.py` walks recursively and skips any subtree that contains `.ignore`.
 
 ## License

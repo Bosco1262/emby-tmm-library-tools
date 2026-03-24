@@ -1,5 +1,6 @@
 import argparse
 import os
+from pathlib import Path
 import re
 
 
@@ -34,13 +35,13 @@ def collect_creation_targets(root_dir: str):
     skipped_count = 0
 
     for base_dir in iter_media_base_dirs(root_dir):
-        if os.path.basename(base_dir).startswith("."):
-            candidate_dirs = [base_dir]
+        if Path(base_dir).name.startswith("."):
+            dirs_to_scan = [base_dir]
         else:
             with os.scandir(base_dir) as entries:
-                candidate_dirs = [entry.path for entry in entries if entry.is_dir()]
+                dirs_to_scan = [entry.path for entry in entries if entry.is_dir()]
 
-        for current_dir in candidate_dirs:
+        for current_dir in dirs_to_scan:
             with os.scandir(current_dir) as children:
                 filenames = {child.name for child in children if child.is_file()}
             scanned_subdirs += 1

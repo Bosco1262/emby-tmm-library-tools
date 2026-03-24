@@ -27,10 +27,14 @@ def collect_creation_targets(root_dir: str):
     skipped_count = 0
 
     for base_dir in iter_media_base_dirs(root_dir):
-        for current_dir, _, filenames in os.walk(base_dir):
-            if current_dir == base_dir:
+        for entry in os.scandir(base_dir):
+            if not entry.is_dir():
                 continue
 
+            current_dir = entry.path
+            filenames = {
+                child.name for child in os.scandir(current_dir) if child.is_file()
+            }
             scanned_subdirs += 1
             has_ignore = ".ignore" in filenames
             has_tmmignore = ".tmmignore" in filenames

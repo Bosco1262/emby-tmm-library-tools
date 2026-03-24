@@ -24,7 +24,7 @@ def iter_media_base_dirs(root_dir: str):
 def collect_creation_targets(root_dir: str):
     targets = []
     scanned_subdirs = 0
-    existing_files = 0
+    skipped_count = 0
 
     for base_dir in iter_media_base_dirs(root_dir):
         for current_dir, _, filenames in os.walk(base_dir):
@@ -39,14 +39,14 @@ def collect_creation_targets(root_dir: str):
                 targets.append(ignore_path)
                 print(f"[PLAN] Create: {ignore_path}")
             else:
-                existing_files += 1
+                skipped_count += 1
             if ".tmmignore" not in filenames:
                 targets.append(tmmignore_path)
                 print(f"[PLAN] Create: {tmmignore_path}")
             else:
-                existing_files += 1
+                skipped_count += 1
 
-    return targets, scanned_subdirs, existing_files
+    return targets, scanned_subdirs, skipped_count
 
 
 def apply_creation(targets):
@@ -67,8 +67,7 @@ def apply_creation(targets):
 
 
 def add_ignore_and_tmmignore(root_dir: str):
-    targets, scanned_subdirs, existing_files = collect_creation_targets(root_dir)
-    skipped_count = existing_files
+    targets, scanned_subdirs, skipped_count = collect_creation_targets(root_dir)
 
     print("\n=== Scan Summary ===")
     print(f"Scanned subdirectories: {scanned_subdirs}")

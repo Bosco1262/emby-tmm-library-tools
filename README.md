@@ -62,18 +62,6 @@ Then it scans and prints planned deletions directory-by-directory (shows current
 - File extension matching is case-insensitive.
 - Scripts process subfolders recursively.
 
-## Suggested `.gitignore`
-
-If needed, create a `.gitignore` file:
-
-```gitignore
-__pycache__/
-*.pyc
-.DS_Store
-Thumbs.db
-```
-
 ## License
 
-MIT (recommended).  
-You can add a `LICENSE` file to make usage terms explicit.
+This project is licensed under the [MIT License](LICENSE).

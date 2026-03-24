@@ -8,7 +8,7 @@ This repository currently includes scripts to:
 
 1. Add `.tmmignore` to subfolders that contain `.ignore`
 2. Add `.ignore` to subfolders under media directories (`MovieName/*`, `ShowName/S1/*`)
-2. In subfolders **without** `.ignore`:
+3. In subfolders **without** `.ignore`:
    - Delete `.nfo`, `.png`, `.jpg` files
    - Delete `.actors` directory if it exists
 

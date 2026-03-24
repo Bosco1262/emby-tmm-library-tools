@@ -24,6 +24,7 @@ def iter_media_base_dirs(root_dir: str):
 def add_ignore_to_subdirs(root_dir: str):
     created_count = 0
     skipped_count = 0
+    error_count = 0
 
     for base_dir in iter_media_base_dirs(root_dir):
         for current_dir, _, filenames in os.walk(base_dir):
@@ -36,24 +37,29 @@ def add_ignore_to_subdirs(root_dir: str):
                 print(f"[SKIPPED] Already exists: {ignore_path}")
                 continue
 
-            with open(ignore_path, "w", encoding="utf-8"):
-                pass
-            created_count += 1
-            print(f"[CREATED] {ignore_path}")
+            try:
+                with open(ignore_path, "w", encoding="utf-8"):
+                    pass
+                created_count += 1
+                print(f"[CREATED] {ignore_path}")
+            except OSError as e:
+                error_count += 1
+                print(f"[ERROR] Failed to create: {ignore_path} ({e})")
 
     print("\nDone.")
     print(f"Created: {created_count}")
     print(f"Skipped (already existed): {skipped_count}")
+    print(f"Errors: {error_count}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=(
-            "在媒体目录的子目录中创建 .ignore："
-            "支持 根目录/电影名/ 和 根目录/节目名/S1 结构"
+            "Create .ignore in media subfolders: supports "
+            "Root/MovieName/ and Root/ShowName/S1 layouts"
         )
     )
-    parser.add_argument("root_dir", help="媒体库根目录路径")
+    parser.add_argument("root_dir", help="Path to the media library root directory")
     args = parser.parse_args()
 
     add_ignore_to_subdirs(args.root_dir)

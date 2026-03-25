@@ -2,6 +2,8 @@
 
 Utility Python scripts to clean and maintain tinyMediaManager files for Emby media libraries.
 
+中文文档请见：[README.zh-CN.md](README.zh-CN.md)
+
 ## Features
 
 This repository currently includes scripts to:
@@ -39,6 +41,12 @@ This repository currently includes scripts to:
 python add_ignore.py /path/to/your/library
 ```
 
+The script first asks:
+
+```text
+请选择输出语言 / Please choose output language [zh/en] (default zh):
+```
+
 > Recommended order: run this script first, then run `clean_subfolders.py`, to avoid unnecessary file loss in folders that should be protected.
 
 ### 2) Clean folders without `.ignore`
@@ -48,6 +56,12 @@ python clean_subfolders.py /path/to/your/library
 ```
 
 The script will first ask:
+
+```text
+请选择输出语言 / Please choose output language [zh/en] (default zh):
+```
+
+Then it asks:
 
 ```
 Delete .nfo files? [y/N]:

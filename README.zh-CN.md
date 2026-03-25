@@ -2,6 +2,8 @@
 
 用于清理和维护 Emby 媒体库中 tinyMediaManager 相关文件的 Python 脚本工具集。
 
+English documentation: [README.md](README.md)
+
 ## 功能
 
 当前仓库包含以下能力：
@@ -24,7 +26,6 @@
 
 - `clean_subfolders.py`  
   递归扫描根目录下所有子目录。对于不含 `.ignore` 的目录，删除图片文件（`.png`、`.jpg`）并可选删除 `.nfo`，同时删除 `.actors` 目录。  
-  扫描时会输出每个目录的计划项；若该目录无需操作，会输出“无需操作”提示。
 
 ## 运行要求
 
@@ -93,7 +94,7 @@ Delete .nfo files? [y/N]:
    - `/media/ShowA/S1/SPs/.ignore`
    - `/media/ShowA/S1/SPs/.tmmignore`
 2. 再运行 `python clean_subfolders.py /media`。  
-   扫描阶段会跳过上述已标记目录树（会输出 `[SKIP] ... found .ignore, skip subtree` 或中文对应提示），这些目录中的文件不会被删除。
+   扫描阶段会跳过上述已标记目录树（会输出 `[SKIP] ... found .ignore, skip subtree`），这些目录中的文件不会被删除。
 
 ## 说明
 

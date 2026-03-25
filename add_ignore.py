@@ -6,6 +6,7 @@ import unicodedata
 
 
 SEASON_DIR_PATTERN = re.compile(r"^S\d+$", re.IGNORECASE)
+MEDIA_LABEL_WIDTH = 20
 MESSAGES = {
     "zh": {
         "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (默认 zh): ",
@@ -92,6 +93,7 @@ def flush_media_plan(media_label: str, plan_rows, messages):
     def display_width(text: str) -> int:
         width = 0
         for ch in text:
+            # Treat Ambiguous width ('A') as 1 to keep deterministic alignment.
             width += 2 if unicodedata.east_asian_width(ch) in ("F", "W") else 1
         return width
 
@@ -100,7 +102,7 @@ def flush_media_plan(media_label: str, plan_rows, messages):
 
     if not plan_rows:
         media_line = f"{media_label}"
-        aligned_media = pad_to_width(media_line, 20)
+        aligned_media = pad_to_width(media_line, MEDIA_LABEL_WIDTH)
         print(messages["plan_header_noop"].format(media_label=aligned_media, detail=messages["noop_dir"]))
         return
     print(messages["plan_header"].format(media_label=media_label))
@@ -131,8 +133,7 @@ def flush_media_plan(media_label: str, plan_rows, messages):
                 collect_lines(child, prefix + child_prefix)
 
     collect_lines(root)
-    detail_lines = [line_head for line_head, detail in lines if detail]
-    max_head_width = max((display_width(line_head) for line_head in detail_lines), default=0)
+    max_head_width = max((display_width(line_head) for line_head, _ in lines), default=0)
 
     for line_head, detail in lines:
         if detail:
@@ -164,6 +165,8 @@ def collect_creation_targets(root_dir: str, messages):
                 dirs_to_scan = [entry.path for entry in entries if entry.is_dir()]
             if not dirs_to_scan:
                 rel_base = os.path.relpath(base_dir, media_root).replace(os.sep, "/")
+                # rel_base == "." means movie root without child dirs; this is rendered by
+                # the media-level NOOP header, so we only add per-row NOOP for nested bases.
                 if rel_base != ".":
                     plan_rows.append((rel_base, messages["noop_dir"]))
                 continue

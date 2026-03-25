@@ -22,10 +22,12 @@ def iter_media_base_dirs(root_dir: str):
                 non_season_dirs.append(child.path)
 
         if season_dirs:
-            yield from season_dirs
-            yield from non_season_dirs
+            for season_dir in season_dirs:
+                yield season_dir, False
+            for non_season_dir in non_season_dirs:
+                yield non_season_dir, True
         else:
-            yield entry.path
+            yield entry.path, False
 
 
 def collect_creation_targets(root_dir: str):
@@ -33,31 +35,39 @@ def collect_creation_targets(root_dir: str):
     scanned_subdirs = 0
     skipped_count = 0
 
-    for base_dir in iter_media_base_dirs(root_dir):
-        with os.scandir(base_dir) as entries:
-            for entry in entries:
-                if not entry.is_dir():
-                    continue
+    for base_dir, scan_self in iter_media_base_dirs(root_dir):
+        if scan_self:
+            dirs_to_scan = [base_dir]
+        else:
+            with os.scandir(base_dir) as entries:
+                dirs_to_scan = [
+                    entry.path
+                    for entry in entries
+                    if entry.is_dir() and entry.name != ".actors"
+                ]
 
-                current_dir = entry.path
-                with os.scandir(current_dir) as children:
-                    filenames = {child.name for child in children if child.is_file()}
-                scanned_subdirs += 1
-                has_ignore = ".ignore" in filenames
-                has_tmmignore = ".tmmignore" in filenames
-                ignore_path = os.path.join(current_dir, ".ignore")
-                tmmignore_path = os.path.join(current_dir, ".tmmignore")
+        for current_dir in dirs_to_scan:
+            if scan_self and os.path.basename(current_dir) == ".actors":
+                print(f"[SKIP] Skip .actors directory: {current_dir}")
+                continue
+            with os.scandir(current_dir) as children:
+                filenames = {child.name for child in children if child.is_file()}
+            scanned_subdirs += 1
+            has_ignore = ".ignore" in filenames
+            has_tmmignore = ".tmmignore" in filenames
+            ignore_path = os.path.join(current_dir, ".ignore")
+            tmmignore_path = os.path.join(current_dir, ".tmmignore")
 
-                if not has_ignore:
-                    targets.append(ignore_path)
-                    print(f"[PLAN] Create: {ignore_path}")
-                else:
-                    skipped_count += 1
-                if not has_tmmignore:
-                    targets.append(tmmignore_path)
-                    print(f"[PLAN] Create: {tmmignore_path}")
-                else:
-                    skipped_count += 1
+            if not has_ignore:
+                targets.append(ignore_path)
+                print(f"[PLAN] Create: {ignore_path}")
+            else:
+                skipped_count += 1
+            if not has_tmmignore:
+                targets.append(tmmignore_path)
+                print(f"[PLAN] Create: {tmmignore_path}")
+            else:
+                skipped_count += 1
 
     return targets, scanned_subdirs, skipped_count
 

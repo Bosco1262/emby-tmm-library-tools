@@ -7,13 +7,13 @@ SEASON_DIR_PATTERN = re.compile(r"^S\d+$", re.IGNORECASE)
 MESSAGES = {
     "zh": {
         "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (默认 zh): ",
-        "plan_header": "\n[计划] {media_label}",
-        "plan_noop": "└── [D] 目录下无需操作",
+        "plan_header": "\n{media_label}",
+        "noop_dir": "[无需操作] 目录内不存在需要操作的文件",
         "skip_actors": "[跳过] 跳过 .actors 目录",
-        "both_exists": "[A] .ignore/.tmmignore 均已存在，跳过",
-        "has_ignore": "[B] 已有 .ignore，创建 .tmmignore",
-        "has_tmmignore": "[B] 已有 .tmmignore，创建 .ignore",
-        "create_both": "[C] 两者都不存在，创建 .ignore 与 .tmmignore",
+        "both_exists": "[无需操作] .ignore/.tmmignore 均已存在，跳过",
+        "has_ignore": "[计划] 已有 .ignore，创建 .tmmignore",
+        "has_tmmignore": "[计划] 已有 .tmmignore，创建 .ignore",
+        "create_both": "[计划] 两者都不存在，创建 .ignore 与 .tmmignore",
         "scan_summary": "\n=== 扫描汇总 ===",
         "scanned_subdirs": "扫描子目录数: {count}",
         "planned_creations": "计划创建数: {count}",
@@ -30,13 +30,13 @@ MESSAGES = {
     },
     "en": {
         "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (default zh): ",
-        "plan_header": "\n[PLAN] {media_label}",
-        "plan_noop": "└── [D] No action needed in this directory",
+        "plan_header": "\n{media_label}",
+        "noop_dir": "[NOOP] No files in this directory require action",
         "skip_actors": "[SKIP] Skip .actors directory",
-        "both_exists": "[A] .ignore/.tmmignore already exist, skip",
-        "has_ignore": "[B] .ignore exists, create .tmmignore",
-        "has_tmmignore": "[B] .tmmignore exists, create .ignore",
-        "create_both": "[C] Both missing, create .ignore and .tmmignore",
+        "both_exists": "[NOOP] .ignore/.tmmignore already exist, skip",
+        "has_ignore": "[PLAN] .ignore exists, create .tmmignore",
+        "has_tmmignore": "[PLAN] .tmmignore exists, create .ignore",
+        "create_both": "[PLAN] Both missing, create .ignore and .tmmignore",
         "scan_summary": "\n=== Scan Summary ===",
         "scanned_subdirs": "Scanned subdirectories: {count}",
         "planned_creations": "Planned creations: {count}",
@@ -85,17 +85,37 @@ def iter_media_base_dirs(root_dir: str):
 
 
 def flush_media_plan(media_label: str, plan_rows, messages):
-    print(messages["plan_header"].format(media_label=media_label))
     if not plan_rows:
-        print(messages["plan_noop"])
+        print(messages["plan_header"].format(media_label=f"{media_label} {messages['noop_dir']}"))
         return
+    print(messages["plan_header"].format(media_label=media_label))
 
-    for index, (dir_label, detail) in enumerate(plan_rows):
-        is_last = index == len(plan_rows) - 1
-        branch = "└──" if is_last else "├──"
-        sub_branch = "    " if is_last else "│   "
-        print(f"{branch} {dir_label}")
-        print(f"{sub_branch}└── {detail}")
+    root = {"children": {}}
+
+    for rel_path, detail in plan_rows:
+        parts = [part for part in rel_path.split("/") if part and part != "."]
+        node = root
+        for part in parts:
+            children = node["children"]
+            if part not in children:
+                children[part] = {"children": {}, "detail": None}
+            node = children[part]
+        node["detail"] = detail
+
+    def print_tree(node, prefix=""):
+        children = list(node["children"].items())
+        for index, (name, child) in enumerate(children):
+            is_last = index == len(children) - 1
+            branch = "└──" if is_last else "├──"
+            child_prefix = "    " if is_last else "│   "
+            line = f"{prefix}{branch} {name}/"
+            if child["detail"]:
+                line = f"{line} {child['detail']}"
+            print(line)
+            if child["children"]:
+                print_tree(child, prefix + child_prefix)
+
+    print_tree(root)
 
 
 def collect_creation_targets(root_dir: str, messages):
@@ -118,13 +138,17 @@ def collect_creation_targets(root_dir: str, messages):
         else:
             with os.scandir(base_dir) as entries:
                 dirs_to_scan = [entry.path for entry in entries if entry.is_dir()]
+            if not dirs_to_scan:
+                rel_base = os.path.relpath(base_dir, media_root).replace(os.sep, "/")
+                if rel_base != ".":
+                    plan_rows.append((rel_base, messages["noop_dir"]))
+                continue
 
         for current_dir in dirs_to_scan:
             rel_path = os.path.relpath(current_dir, media_root).replace(os.sep, "/")
-            dir_label = f"{rel_path}/"
 
             if os.path.basename(current_dir) == ".actors":
-                plan_rows.append((dir_label, messages["skip_actors"]))
+                plan_rows.append((rel_path, messages["skip_actors"]))
                 continue
             with os.scandir(current_dir) as children:
                 filenames = {child.name for child in children if child.is_file()}
@@ -139,16 +163,16 @@ def collect_creation_targets(root_dir: str, messages):
             if not has_tmmignore:
                 targets.append(tmmignore_path)
             if has_ignore and has_tmmignore:
-                plan_rows.append((dir_label, messages["both_exists"]))
+                plan_rows.append((rel_path, messages["both_exists"]))
                 skipped_count += 2
             elif has_ignore and not has_tmmignore:
-                plan_rows.append((dir_label, messages["has_ignore"]))
+                plan_rows.append((rel_path, messages["has_ignore"]))
                 skipped_count += 1
             elif not has_ignore and has_tmmignore:
-                plan_rows.append((dir_label, messages["has_tmmignore"]))
+                plan_rows.append((rel_path, messages["has_tmmignore"]))
                 skipped_count += 1
             else:
-                plan_rows.append((dir_label, messages["create_both"]))
+                plan_rows.append((rel_path, messages["create_both"]))
 
     if current_media_root is not None:
         media_label = f"{os.path.basename(current_media_root)}/"

@@ -1,5 +1,6 @@
 import argparse
 import os
+from pathlib import PurePosixPath
 import re
 
 
@@ -8,6 +9,7 @@ MESSAGES = {
     "zh": {
         "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (默认 zh): ",
         "plan_header": "\n{media_label}",
+        "plan_header_noop": "\n{media_label} {detail}",
         "noop_dir": "[无需操作] 目录内不存在需要操作的文件",
         "skip_actors": "[跳过] 跳过 .actors 目录",
         "both_exists": "[无需操作] .ignore/.tmmignore 均已存在，跳过",
@@ -31,6 +33,7 @@ MESSAGES = {
     "en": {
         "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (default zh): ",
         "plan_header": "\n{media_label}",
+        "plan_header_noop": "\n{media_label} {detail}",
         "noop_dir": "[NOOP] No files in this directory require action",
         "skip_actors": "[SKIP] Skip .actors directory",
         "both_exists": "[NOOP] .ignore/.tmmignore already exist, skip",
@@ -86,14 +89,14 @@ def iter_media_base_dirs(root_dir: str):
 
 def flush_media_plan(media_label: str, plan_rows, messages):
     if not plan_rows:
-        print(messages["plan_header"].format(media_label=f"{media_label} {messages['noop_dir']}"))
+        print(messages["plan_header_noop"].format(media_label=media_label, detail=messages["noop_dir"]))
         return
     print(messages["plan_header"].format(media_label=media_label))
 
     root = {"children": {}}
 
     for rel_path, detail in plan_rows:
-        parts = [part for part in rel_path.split("/") if part and part != "."]
+        parts = list(PurePosixPath(rel_path).parts)
         node = root
         for part in parts:
             children = node["children"]
@@ -108,9 +111,11 @@ def flush_media_plan(media_label: str, plan_rows, messages):
             is_last = index == len(children) - 1
             branch = "└──" if is_last else "├──"
             child_prefix = "    " if is_last else "│   "
-            line = f"{prefix}{branch} {name}/"
-            if child["detail"]:
-                line = f"{line} {child['detail']}"
+            line = (
+                f"{prefix}{branch} {name}/ {child['detail']}"
+                if child["detail"]
+                else f"{prefix}{branch} {name}/"
+            )
             print(line)
             if child["children"]:
                 print_tree(child, prefix + child_prefix)

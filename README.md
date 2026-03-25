@@ -24,15 +24,17 @@ This repository currently includes scripts to:
   Supports two structures:
   - `Root/MovieName/*`
   - `Root/ShowName/S1/*` (and other `S<number>` seasons), plus sibling non-season directories when seasons exist (for example `Root/ShowName/Extra`)  
-  First performs a scan and prints all planned file creations, then asks for confirmation.  
+  Uses a scan + confirm workflow.  
   After you type `yes`, it creates missing `.ignore` and `.tmmignore` files in target directories.
 
 - `clean_subfolders.py`  
   Scans all subfolders under a root directory.  
-  For subfolders without `.ignore`, deletes image files (`.png`, `.jpg`) and optionally `.nfo` files (you are prompted at startup), and removes `.actors` directory.
+  Uses a scan + confirm workflow.  
+  For subfolders without `.ignore`, it deletes image files (`.png`, `.jpg`) and optionally `.nfo` files (you are prompted at startup), and removes `.actors` directory.
 
 - `remove_ignore.py`  
-  Uses the same media traversal logic as `add_ignore.py` and performs scan + confirm before deletion.  
+  Uses the same media traversal logic as `add_ignore.py`.  
+  Uses a scan + confirm workflow.  
   It plans and deletes existing `.ignore`/`.tmmignore` in target first-level media subfolders.
 
 ## Requirements
@@ -53,9 +55,32 @@ The script first asks:
 请选择输出语言 / Please choose output language [zh/en] (default zh):
 ```
 
-> Recommended order: run this script first, then run `clean_subfolders.py`, to avoid unnecessary file loss in folders that should be protected.
+> Recommended order: run `add_ignore.py` first, then `clean_subfolders.py`, and finally `remove_ignore.py`.
 
-### 2) Remove `.ignore` and `.tmmignore` from media subfolders (scan + confirm)
+### 2) Clean folders without `.ignore` (scan + confirm)
+
+```bash
+python clean_subfolders.py /path/to/your/library
+```
+
+The script first asks:
+
+```text
+请选择输出语言 / Please choose output language [zh/en] (default zh):
+```
+
+Then it asks:
+
+```
+Delete .nfo files? [y/N]:
+```
+
+- Enter `y` or `yes` to include `.nfo` files in the deletion.
+- Press Enter (or type anything else) to skip `.nfo` files (default, safe choice).
+
+Then it scans and prints planned deletions directory-by-directory (shows current path first, then filenames to be deleted under that path), and asks for a final `yes` confirmation before making any changes.
+
+### 3) Remove `.ignore` and `.tmmignore` from media subfolders (scan + confirm)
 
 ```bash
 python remove_ignore.py /path/to/your/library
@@ -72,29 +97,6 @@ Then it scans and prints planned deletion tree, including:
 - `[PLAN] Delete .tmmignore and .ignore`
 - `[PLAN] Delete .tmmignore`
 - `[PLAN] Delete .ignore`
-
-### 3) Clean folders without `.ignore`
-
-```bash
-python clean_subfolders.py /path/to/your/library
-```
-
-The script will first ask:
-
-```text
-请选择输出语言 / Please choose output language [zh/en] (default zh):
-```
-
-Then it asks:
-
-```
-Delete .nfo files? [y/N]:
-```
-
-- Enter `y` or `yes` to include `.nfo` files in the deletion.
-- Press Enter (or type anything else) to skip `.nfo` files (default, safe choice).
-
-Then it scans and prints planned deletions directory-by-directory (shows current path first, then filenames to be deleted under that path), and asks for a final `yes` confirmation before making any changes.
 
 ## Example (recommended order)
 
@@ -119,9 +121,10 @@ Given a library like:
    - `/media/MovieA/Extras/.tmmignore`
    - `/media/ShowA/S1/SPs/.ignore`
    - `/media/ShowA/S1/SPs/.tmmignore`
-2. (Optional) Run `python remove_ignore.py /media` if you need to remove markers from the same media subfolders.  
-3. Run `python clean_subfolders.py /media`.  
+2. Run `python clean_subfolders.py /media`.  
    During scan, these marked folders are skipped (you will see `[SKIP] ... found .ignore, skip subtree`), so files in those protected trees are not deleted.
+3. Run `python remove_ignore.py /media` and confirm with `yes`.  
+   This removes marker files (`.ignore`, `.tmmignore`) from the same first-level media subfolders after cleanup.
 
 ## Notes
 

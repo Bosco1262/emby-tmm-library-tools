@@ -14,7 +14,7 @@ MESSAGES = {
         "plan_header_noop": "\n{media_label} {detail}",
         "noop_dir": "[无需操作] 目录内不存在需要操作的子目录。",
         "skip_actors": "[跳过] 跳过 .actors 目录",
-        "both_exists": "[无需操作] .ignore/.tmmignore 均已存在，跳过",
+        "both_exists": "[跳过] .ignore/.tmmignore 均已存在",
         "has_ignore": "[计划] 已有 .ignore，创建 .tmmignore",
         "has_tmmignore": "[计划] 已有 .tmmignore，创建 .ignore",
         "create_both": "[计划] 两者都不存在，创建 .ignore 与 .tmmignore",
@@ -38,7 +38,7 @@ MESSAGES = {
         "plan_header_noop": "\n{media_label} {detail}",
         "noop_dir": "[NOOP] No files in this directory require action",
         "skip_actors": "[SKIP] Skip .actors directory",
-        "both_exists": "[NOOP] .ignore/.tmmignore already exist, skip",
+        "both_exists": "[SKIP] .ignore/.tmmignore already exist",
         "has_ignore": "[PLAN] .ignore exists, create .tmmignore",
         "has_tmmignore": "[PLAN] .tmmignore exists, create .ignore",
         "create_both": "[PLAN] Both missing, create .ignore and .tmmignore",
@@ -93,7 +93,7 @@ def flush_media_plan(media_label: str, plan_rows, messages):
     def display_width(text: str) -> int:
         width = 0
         for ch in text:
-            # Treat Ambiguous width ('A') as 1 to keep deterministic alignment.
+            # 宽字符(F/W)按2列计算，其他字符按1列计算，保证中英文混排时对齐稳定
             width += 2 if unicodedata.east_asian_width(ch) in ("F", "W") else 1
         return width
 
@@ -165,8 +165,8 @@ def collect_creation_targets(root_dir: str, messages):
                 dirs_to_scan = [entry.path for entry in entries if entry.is_dir()]
             if not dirs_to_scan:
                 rel_base = os.path.relpath(base_dir, media_root).replace(os.sep, "/")
-                # rel_base == "." means movie root without child dirs; this is rendered by
-                # the media-level NOOP header, so we only add per-row NOOP for nested bases.
+                # rel_base == "." 表示电影目录本身无子目录；该场景由媒体级 NOOP 头行展示，
+                # 这里只为嵌套基目录补充逐行 NOOP，避免重复输出。
                 if rel_base != ".":
                     plan_rows.append((rel_base, messages["noop_dir"]))
                 continue
@@ -255,11 +255,11 @@ def add_ignore_and_tmmignore(root_dir: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=(
-            "Plan and create .ignore/.tmmignore in media subfolders: supports "
-            "Root/MovieName/ and Root/ShowName/S1 layouts"
+            "扫描并规划在媒体子目录中创建 .ignore/.tmmignore，支持 "
+            "Root/MovieName/ 与 Root/ShowName/S1 两种结构"
         )
     )
-    parser.add_argument("root_dir", help="Path to the media library root directory")
+    parser.add_argument("root_dir", help="媒体库根目录路径")
     args = parser.parse_args()
 
     add_ignore_and_tmmignore(args.root_dir)

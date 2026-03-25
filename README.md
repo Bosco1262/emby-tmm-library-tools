@@ -7,10 +7,10 @@ Utility Python scripts to clean and maintain tinyMediaManager files for Emby med
 This repository currently includes scripts to:
 
 1. Add `.ignore` and `.tmmignore`:
-   - in first-level subfolders under movie/season bases (`MovieName/*`, `ShowName/S1/*`)
-   - directly in season-layout sibling non-season dirs (`ShowName/Extra`, `ShowName/SPs`, etc.)
+   - in first-level subfolders under movie bases (`MovieName/*`)
+   - in first-level subfolders under show/season bases (`ShowName/S1/*`) and directly in season-layout sibling non-season dirs (`ShowName/Extra`, `ShowName/SPs`, etc.)
 2. In subfolders **without** `.ignore`:
-   - Delete `.nfo`, `.png`, `.jpg` files
+   - Delete `.png`, `.jpg` files (and optionally `.nfo` files)
    - Delete `.actors` directory if it exists
 
 ## Scripts

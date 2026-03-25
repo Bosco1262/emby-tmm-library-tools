@@ -46,7 +46,7 @@ MESSAGES = {
         "plan_files": "  Files to delete:",
         "plan_dirs": "  Directories to delete:",
         "plan_item": "    - {item}",
-        "plan_noop": "[NOOP] {path}",
+        "plan_noop": "[NOOP] {path} (no files to process in directory)",
         "summary_header": "\n=== Summary ===",
         "scanned_subdirs": "Scanned subdirectories: {count}",
         "files_planned": "Files planned for deletion ({types}): {count}",

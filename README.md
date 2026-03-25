@@ -11,7 +11,9 @@ This repository currently includes scripts to:
 1. Add `.ignore` and `.tmmignore`:
    - in first-level subfolders under movie bases (`MovieName/*`)
    - in first-level subfolders under show/season bases (`ShowName/S1/*`) and directly in season-layout sibling non-season dirs (`ShowName/Extra`, `ShowName/SPs`, etc.)
-2. In subfolders **without** `.ignore`:
+2. Remove `.ignore` and `.tmmignore`:
+   - in the same first-level media subfolders scanned by `add_ignore.py`
+3. In subfolders **without** `.ignore`:
    - Delete `.png`, `.jpg` files (and optionally `.nfo` files)
    - Delete `.actors` directory if it exists
 
@@ -22,12 +24,18 @@ This repository currently includes scripts to:
   Supports two structures:
   - `Root/MovieName/*`
   - `Root/ShowName/S1/*` (and other `S<number>` seasons), plus sibling non-season directories when seasons exist (for example `Root/ShowName/Extra`)  
-  First performs a scan and prints all planned file creations, then asks for confirmation.  
+  Uses a scan + confirm workflow.  
   After you type `yes`, it creates missing `.ignore` and `.tmmignore` files in target directories.
 
 - `clean_subfolders.py`  
   Scans all subfolders under a root directory.  
-  For subfolders without `.ignore`, deletes image files (`.png`, `.jpg`) and optionally `.nfo` files (you are prompted at startup), and removes `.actors` directory.
+  Uses a scan + confirm workflow.  
+  For subfolders without `.ignore`, it deletes image files (`.png`, `.jpg`) and optionally `.nfo` files (you are prompted at startup), and removes `.actors` directory.
+
+- `remove_ignore.py`  
+  Uses the same media traversal logic as `add_ignore.py`.  
+  Uses a scan + confirm workflow.  
+  It plans and deletes existing `.ignore`/`.tmmignore` in target first-level media subfolders.
 
 ## Requirements
 
@@ -47,15 +55,15 @@ The script first asks:
 请选择输出语言 / Please choose output language [zh/en] (default zh):
 ```
 
-> Recommended order: run this script first, then run `clean_subfolders.py`, to avoid unnecessary file loss in folders that should be protected.
+> Recommended order: run `add_ignore.py` first, then `clean_subfolders.py`, and finally `remove_ignore.py`.
 
-### 2) Clean folders without `.ignore`
+### 2) Clean folders without `.ignore` (scan + confirm)
 
 ```bash
 python clean_subfolders.py /path/to/your/library
 ```
 
-The script will first ask:
+The script first asks:
 
 ```text
 请选择输出语言 / Please choose output language [zh/en] (default zh):
@@ -71,6 +79,24 @@ Delete .nfo files? [y/N]:
 - Press Enter (or type anything else) to skip `.nfo` files (default, safe choice).
 
 Then it scans and prints planned deletions directory-by-directory (shows current path first, then filenames to be deleted under that path), and asks for a final `yes` confirmation before making any changes.
+
+### 3) Remove `.ignore` and `.tmmignore` from media subfolders (scan + confirm)
+
+```bash
+python remove_ignore.py /path/to/your/library
+```
+
+The script first asks:
+
+```text
+请选择输出语言 / Please choose output language [zh/en] (default zh):
+```
+
+Then it scans and prints planned deletion tree, including:
+- `[NOOP] No files in this directory require action`
+- `[PLAN] Delete .tmmignore and .ignore`
+- `[PLAN] Delete .tmmignore`
+- `[PLAN] Delete .ignore`
 
 ## Example (recommended order)
 
@@ -97,6 +123,8 @@ Given a library like:
    - `/media/ShowA/S1/SPs/.tmmignore`
 2. Run `python clean_subfolders.py /media`.  
    During scan, these marked folders are skipped (you will see `[SKIP] ... found .ignore, skip subtree`), so files in those protected trees are not deleted.
+3. Run `python remove_ignore.py /media` and confirm with `yes`.  
+   This removes marker files (`.ignore`, `.tmmignore`) from the same first-level media subfolders after cleanup.
 
 ## Notes
 
@@ -108,7 +136,8 @@ Given a library like:
      - each season dir (`S1`, `S2`, ...) is treated as a media base dir and the script scans its first-level child directories (`S1/*`) as creation targets;
      - each sibling non-season dir (for example `SPs`, `Extras`) is treated as a direct creation target (creates `.ignore`/`.tmmignore` in `ShowName/SPs` itself, not only in `ShowName/SPs/*`).
   3. If that folder contains no `S<number>` directories, it is treated as a movie base dir and the script scans its first-level child directories (`MovieName/*`) as creation targets.
-  4. Any directory named `.actors` is always skipped (both “with seasons” and “without seasons” cases), so `.actors` is not treated as a creation target and no `.ignore`/`.tmmignore` files are created in it.
+   4. Any directory named `.actors` is always skipped (both “with seasons” and “without seasons” cases), so `.actors` is not treated as a creation target and no `.ignore`/`.tmmignore` files are created in it.
+- `remove_ignore.py` uses the same first-level media traversal logic and only handles `.ignore` / `.tmmignore` marker files.
 - `clean_subfolders.py` walks recursively and skips any subtree that contains `.ignore`.
 
 ## License

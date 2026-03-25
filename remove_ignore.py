@@ -12,24 +12,22 @@ MESSAGES = {
         "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (默认 zh): ",
         "plan_header": "\n{media_label}",
         "plan_header_noop": "\n{media_label} {detail}",
-        "noop_dir": "[无需操作] 目录内不存在需要操作的子目录。",
-        "skip_actors": "[跳过] 跳过 .actors 目录",
-        "both_exists": "[跳过] .ignore/.tmmignore 均已存在",
-        "has_ignore": "[计划] 已有 .ignore，创建 .tmmignore",
-        "has_tmmignore": "[计划] 已有 .tmmignore，创建 .ignore",
-        "create_both": "[计划] 两者都不存在，创建 .ignore 与 .tmmignore",
+        "noop_dir": "[无需操作] 目录内不存在需要操作的文件",
+        "delete_both": "[计划] 删除 .tmmignore 和 .ignore",
+        "delete_tmmignore": "[计划] 删除 .tmmignore",
+        "delete_ignore": "[计划] 删除 .ignore",
         "scan_summary": "\n=== 扫描汇总 ===",
         "scanned_subdirs": "扫描子目录数: {count}",
-        "planned_creations": "计划创建数: {count}",
-        "skipped_exists": "跳过（已存在）: {count}",
-        "nothing_to_create": "\n无需创建任何文件。",
-        "confirm_create": "\n确认创建吗？输入 yes 继续: ",
-        "canceled": "已取消，未创建任何文件。",
-        "creating": "\n正在创建文件...",
-        "created": "[已创建] {path}",
-        "error_create": "[错误] 创建失败: {path} ({error})",
+        "planned_deletions": "计划删除数: {count}",
+        "noop_count": "无需操作数: {count}",
+        "nothing_to_delete": "\n无需删除任何文件。",
+        "confirm_delete": "\n确认删除吗？输入 yes 继续: ",
+        "canceled": "已取消，未删除任何文件。",
+        "deleting": "\n正在删除文件...",
+        "deleted": "[已删除] {path}",
+        "error_delete": "[错误] 删除失败: {path} ({error})",
         "done": "\n完成。",
-        "created_count": "已创建: {count}",
+        "deleted_count": "已删除: {count}",
         "errors": "错误: {count}",
     },
     "en": {
@@ -37,23 +35,21 @@ MESSAGES = {
         "plan_header": "\n{media_label}",
         "plan_header_noop": "\n{media_label} {detail}",
         "noop_dir": "[NOOP] No files in this directory require action",
-        "skip_actors": "[SKIP] Skip .actors directory",
-        "both_exists": "[SKIP] .ignore/.tmmignore already exist",
-        "has_ignore": "[PLAN] .ignore exists, create .tmmignore",
-        "has_tmmignore": "[PLAN] .tmmignore exists, create .ignore",
-        "create_both": "[PLAN] Both missing, create .ignore and .tmmignore",
+        "delete_both": "[PLAN] Delete .tmmignore and .ignore",
+        "delete_tmmignore": "[PLAN] Delete .tmmignore",
+        "delete_ignore": "[PLAN] Delete .ignore",
         "scan_summary": "\n=== Scan Summary ===",
         "scanned_subdirs": "Scanned subdirectories: {count}",
-        "planned_creations": "Planned creations: {count}",
-        "skipped_exists": "Skipped (already existed): {count}",
-        "nothing_to_create": "\nNothing to create.",
-        "confirm_create": "\nConfirm creation? Type yes to continue: ",
-        "canceled": "Canceled. No files were created.",
-        "creating": "\nCreating files...",
-        "created": "[CREATED] {path}",
-        "error_create": "[ERROR] Failed to create: {path} ({error})",
+        "planned_deletions": "Planned deletions: {count}",
+        "noop_count": "No-op directories: {count}",
+        "nothing_to_delete": "\nNothing to delete.",
+        "confirm_delete": "\nConfirm deletion? Type yes to continue: ",
+        "canceled": "Canceled. No files were deleted.",
+        "deleting": "\nDeleting files...",
+        "deleted": "[DELETED] {path}",
+        "error_delete": "[ERROR] Failed to delete: {path} ({error})",
         "done": "\nDone.",
-        "created_count": "Created: {count}",
+        "deleted_count": "Deleted: {count}",
         "errors": "Errors: {count}",
     },
 }
@@ -143,10 +139,10 @@ def flush_media_plan(media_label: str, plan_rows, messages):
             print(line_head)
 
 
-def collect_creation_targets(root_dir: str, messages):
+def collect_deletion_targets(root_dir: str, messages):
     targets = []
     scanned_subdirs = 0
-    skipped_count = 0
+    noop_count = 0
     current_media_root = None
     plan_rows = []
 
@@ -169,97 +165,89 @@ def collect_creation_targets(root_dir: str, messages):
                 # 这里只为嵌套基目录补充逐行“无需操作”，避免重复输出。
                 if rel_base != ".":
                     plan_rows.append((rel_base, messages["noop_dir"]))
+                    noop_count += 1
                 continue
 
         for current_dir in dirs_to_scan:
+            scanned_subdirs += 1
             rel_path = os.path.relpath(current_dir, media_root).replace(os.sep, "/")
-
-            if os.path.basename(current_dir) == ".actors":
-                plan_rows.append((rel_path, messages["skip_actors"]))
-                continue
             with os.scandir(current_dir) as children:
                 filenames = {child.name for child in children if child.is_file()}
-            scanned_subdirs += 1
+
             has_ignore = ".ignore" in filenames
             has_tmmignore = ".tmmignore" in filenames
-            ignore_path = os.path.join(current_dir, ".ignore")
-            tmmignore_path = os.path.join(current_dir, ".tmmignore")
 
-            if not has_ignore:
-                targets.append(ignore_path)
-            if not has_tmmignore:
-                targets.append(tmmignore_path)
             if has_ignore and has_tmmignore:
-                plan_rows.append((rel_path, messages["both_exists"]))
-                skipped_count += 2
-            elif has_ignore and not has_tmmignore:
-                plan_rows.append((rel_path, messages["has_ignore"]))
-                skipped_count += 1
-            elif not has_ignore and has_tmmignore:
-                plan_rows.append((rel_path, messages["has_tmmignore"]))
-                skipped_count += 1
+                targets.append(os.path.join(current_dir, ".tmmignore"))
+                targets.append(os.path.join(current_dir, ".ignore"))
+                plan_rows.append((rel_path, messages["delete_both"]))
+            elif has_tmmignore:
+                targets.append(os.path.join(current_dir, ".tmmignore"))
+                plan_rows.append((rel_path, messages["delete_tmmignore"]))
+            elif has_ignore:
+                targets.append(os.path.join(current_dir, ".ignore"))
+                plan_rows.append((rel_path, messages["delete_ignore"]))
             else:
-                plan_rows.append((rel_path, messages["create_both"]))
+                plan_rows.append((rel_path, messages["noop_dir"]))
+                noop_count += 1
 
     if current_media_root is not None:
         media_label = f"{os.path.basename(current_media_root)}/"
         flush_media_plan(media_label, plan_rows, messages)
 
-    return targets, scanned_subdirs, skipped_count
+    return targets, scanned_subdirs, noop_count
 
 
-def apply_creation(targets, messages):
-    created_count = 0
+def apply_deletion(targets, messages):
+    deleted_count = 0
     error_count = 0
 
     for path in targets:
         try:
-            with open(path, "w", encoding="utf-8"):
-                pass
-            created_count += 1
-            print(messages["created"].format(path=path))
+            os.remove(path)
+            deleted_count += 1
+            print(messages["deleted"].format(path=path))
         except OSError as e:
             error_count += 1
-            print(messages["error_create"].format(path=path, error=e))
+            print(messages["error_delete"].format(path=path, error=e))
 
-    return created_count, error_count
+    return deleted_count, error_count
 
 
-def add_ignore_and_tmmignore(root_dir: str):
+def remove_ignore_and_tmmignore(root_dir: str):
     messages = MESSAGES[choose_language()]
-    targets, scanned_subdirs, skipped_count = collect_creation_targets(root_dir, messages)
+    targets, scanned_subdirs, noop_count = collect_deletion_targets(root_dir, messages)
 
     print(messages["scan_summary"])
     print(messages["scanned_subdirs"].format(count=scanned_subdirs))
-    print(messages["planned_creations"].format(count=len(targets)))
-    print(messages["skipped_exists"].format(count=skipped_count))
+    print(messages["planned_deletions"].format(count=len(targets)))
+    print(messages["noop_count"].format(count=noop_count))
 
     if not targets:
-        print(messages["nothing_to_create"])
+        print(messages["nothing_to_delete"])
         return
 
-    confirm = input(messages["confirm_create"]).strip().lower()
+    confirm = input(messages["confirm_delete"]).strip().lower()
     if confirm != "yes":
         print(messages["canceled"])
         return
 
-    print(messages["creating"])
-    created_count, error_count = apply_creation(targets, messages)
+    print(messages["deleting"])
+    deleted_count, error_count = apply_deletion(targets, messages)
 
     print(messages["done"])
-    print(messages["created_count"].format(count=created_count))
-    print(messages["skipped_exists"].format(count=skipped_count))
+    print(messages["deleted_count"].format(count=deleted_count))
     print(messages["errors"].format(count=error_count))
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=(
-            "扫描并规划在媒体子目录中创建 .ignore/.tmmignore，支持 "
+            "扫描并规划在媒体子目录中删除 .ignore/.tmmignore，支持 "
             "Root/MovieName/ 与 Root/ShowName/S1 两种结构"
         )
     )
     parser.add_argument("root_dir", help="媒体库根目录路径")
     args = parser.parse_args()
 
-    add_ignore_and_tmmignore(args.root_dir)
+    remove_ignore_and_tmmignore(args.root_dir)

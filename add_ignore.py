@@ -93,7 +93,7 @@ def flush_media_plan(media_label: str, plan_rows, messages):
     def display_width(text: str) -> int:
         width = 0
         for ch in text:
-            # 宽字符(F/W)按2列计算，其他字符按1列计算，保证中英文混排时对齐稳定
+            # 宽字符(F/W)按2个显示位计算，其他字符按1个显示位计算，保证中英文混排时对齐稳定
             width += 2 if unicodedata.east_asian_width(ch) in ("F", "W") else 1
         return width
 
@@ -165,8 +165,8 @@ def collect_creation_targets(root_dir: str, messages):
                 dirs_to_scan = [entry.path for entry in entries if entry.is_dir()]
             if not dirs_to_scan:
                 rel_base = os.path.relpath(base_dir, media_root).replace(os.sep, "/")
-                # rel_base == "." 表示电影目录本身无子目录；该场景由媒体级 NOOP 头行展示，
-                # 这里只为嵌套基目录补充逐行 NOOP，避免重复输出。
+                # rel_base == "." 表示电影目录本身无子目录；该场景由媒体级“无需操作”头行展示，
+                # 这里只为嵌套基目录补充逐行“无需操作”，避免重复输出。
                 if rel_base != ".":
                     plan_rows.append((rel_base, messages["noop_dir"]))
                 continue

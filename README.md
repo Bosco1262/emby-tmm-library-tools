@@ -2,6 +2,8 @@
 
 Utility Python scripts to clean and maintain tinyMediaManager files for Emby media libraries.
 
+中文文档请见：[README.zh-CN.md](README.zh-CN.md)
+
 ## Features
 
 This repository currently includes scripts to:

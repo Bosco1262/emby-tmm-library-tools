@@ -40,60 +40,126 @@ English documentation: [README.md](README.md)
 
 ## 使用方法
 
-### 1）先添加 `.ignore` / `.tmmignore`（扫描 + 确认）
+### 1）`add_ignore.py` — 向媒体子目录添加 `.ignore` 和 `.tmmignore`
 
 ```bash
 python add_ignore.py /path/to/your/library
 ```
 
-脚本启动后会先询问输出语言：
+脚本启动后先询问输出语言：
 
 ```text
-请选择输出语言 / Please choose output language [zh/en] (default zh):
+请选择输出语言 / Please choose output language [zh/en] (默认 zh):
 ```
 
-> 推荐顺序：依次运行 `add_ignore.py` → `clean_subfolders.py` → `remove_ignore.py`。
+随后按媒体根目录分组，以树形结构输出创建计划，每条目录条目包含以下标签之一：
 
-### 2）清理不含 `.ignore` 的目录（扫描 + 确认）
+- `[跳过] 跳过 .actors 目录` — `.actors` 目录始终跳过
+- `[跳过] .ignore/.tmmignore 均已存在` — 两个标记文件均已存在，无需操作
+- `[计划] 两者都不存在，创建 .ignore 与 .tmmignore` — 将同时创建两个文件
+- `[计划] 已有 .ignore，创建 .tmmignore` — 将补充创建 `.tmmignore`
+- `[计划] 已有 .tmmignore，创建 .ignore` — 将补充创建 `.ignore`
+- `[无需操作] 目录内不存在需要操作的子目录。` — 该媒体基目录下没有子目录
+
+扫描结束后输出汇总：
+
+```text
+=== 扫描汇总 ===
+扫描子目录数: N
+计划创建数: N
+跳过（已存在）: N
+```
+
+若无需创建任何文件则直接退出。否则询问确认：
+
+```text
+确认创建吗？输入 yes 继续:
+```
+
+输入 `yes` 后在目标目录中创建缺失的 `.ignore` 和 `.tmmignore`。其他任何输入都会取消操作。
+
+### 2）`clean_subfolders.py` — 删除不含 `.ignore` 的目录中的图片文件和 `.actors` 目录
+
+> **⚠ 请先运行 `add_ignore.py` 标记需要保护的目录，否则受保护目录中的文件可能被误删。**
 
 ```bash
 python clean_subfolders.py /path/to/your/library
 ```
 
-脚本会先询问输出语言：
+脚本启动后先询问输出语言：
 
 ```text
-请选择输出语言 / Please choose output language [zh/en] (default zh):
+请选择输出语言 / Please choose output language [zh/en] (默认 zh):
 ```
 
-随后询问是否删除 `.nfo`：
+随后询问是否删除 `.nfo` 文件：
 
 ```text
-Delete .nfo files? [y/N]:
+是否删除 .nfo 文件？[y/N]:
 ```
 
-- 输入 `y` / `yes`：会把 `.nfo` 纳入删除范围
-- 直接回车（或其它输入）：不删除 `.nfo`（默认，更安全）
+- 输入 `y` / `yes`：将 `.nfo` 纳入删除范围
+- 直接回车（或其他输入）：不删除 `.nfo`（默认，更安全）
 
-之后脚本会按目录输出扫描计划（先显示目录，再显示该目录下的待删项），最后再次询问是否输入 `yes` 确认执行。
+脚本会递归扫描所有子目录，并逐目录输出计划：
 
-### 3）删除媒体子目录中的 `.ignore` / `.tmmignore`（扫描 + 确认）
+- `[跳过] <path>（发现 .ignore，跳过整棵子树）` — 此目录树受 `.ignore` 保护，不会删除任何文件
+- `[计划] <path>` 并附带待删文件/目录列表 — 这些内容将被删除
+- `[无需操作] <path>` — 此目录内无需删除任何内容
+
+扫描结束后输出汇总：
+
+```text
+=== 汇总 ===
+扫描子目录数: N
+计划删除文件数（.png/.jpg）: N
+计划删除目录数: N
+因 .ignore 跳过的目录树: N
+```
+
+若无需删除则直接退出。否则询问确认：
+
+```text
+确认删除吗？输入 yes 继续:
+```
+
+输入 `yes` 后删除计划中的图片文件（`.png`、`.jpg`，可选 `.nfo`）和 `.actors` 目录。其他任何输入都会取消操作。
+
+### 3）`remove_ignore.py` — 从媒体子目录删除 `.ignore` 和 `.tmmignore`
 
 ```bash
 python remove_ignore.py /path/to/your/library
 ```
 
-脚本启动后会先询问输出语言：
+脚本启动后先询问输出语言：
 
 ```text
-请选择输出语言 / Please choose output language [zh/en] (default zh):
+请选择输出语言 / Please choose output language [zh/en] (默认 zh):
 ```
 
-随后按树形结构输出计划，包含以下类型：
-- `[无需操作] 目录内不存在需要操作的文件`
-- `[计划] 删除 .tmmignore 和 .ignore`
-- `[计划] 删除 .tmmignore`
-- `[计划] 删除 .ignore`
+脚本采用与 `add_ignore.py` 相同的媒体遍历逻辑，按媒体根目录分组以树形结构输出删除计划，每条目录条目包含以下标签之一：
+
+- `[无需操作] 目录内不存在需要操作的文件` — 未发现标记文件
+- `[计划] 删除 .tmmignore 和 .ignore` — 将同时删除两个文件
+- `[计划] 删除 .tmmignore` — 仅删除 `.tmmignore`
+- `[计划] 删除 .ignore` — 仅删除 `.ignore`
+
+扫描结束后输出汇总：
+
+```text
+=== 扫描汇总 ===
+扫描子目录数: N
+计划删除数: N
+无需操作数: N
+```
+
+若无需删除任何文件则直接退出。否则询问确认：
+
+```text
+确认删除吗？输入 yes 继续:
+```
+
+输入 `yes` 后删除标记文件。其他任何输入都会取消操作。
 
 ## 示例（推荐顺序）
 
@@ -102,9 +168,10 @@ python remove_ignore.py /path/to/your/library
 ```text
 /media
 ├── MovieA
-│   └── Extras
-│       ├── poster.jpg
-│       └── .actors
+│   ├── Extras
+│   │   ├── poster.jpg
+│   │   └── .actors
+│   └── poster.jpg
 └── ShowA
     └── S1
         └── SPs
@@ -112,16 +179,85 @@ python remove_ignore.py /path/to/your/library
             └── info.nfo
 ```
 
-1. 运行 `python add_ignore.py /media` 并确认 `yes`。  
-   会在一级媒体子目录中创建标记文件，例如：
-   - `/media/MovieA/Extras/.ignore`
-   - `/media/MovieA/Extras/.tmmignore`
-   - `/media/ShowA/S1/SPs/.ignore`
-   - `/media/ShowA/S1/SPs/.tmmignore`
-2. 再运行 `python clean_subfolders.py /media`。  
-   扫描阶段会跳过上述已标记目录树（会输出 `[SKIP] ... found .ignore, skip subtree`），这些目录中的文件不会被删除。
-3. 最后运行 `python remove_ignore.py /media` 并确认 `yes`。  
-   清理完成后，可将同一批目录中的标记文件（`.ignore`、`.tmmignore`）移除。
+**第一步** — 运行 `python add_ignore.py /media` 并确认 `yes`。
+
+脚本扫描一级媒体子目录并输出创建计划：
+
+```text
+MovieA/
+└── Extras/    [计划] 两者都不存在，创建 .ignore 与 .tmmignore
+
+ShowA/
+└── S1/
+    └── SPs/   [计划] 两者都不存在，创建 .ignore 与 .tmmignore
+
+=== 扫描汇总 ===
+扫描子目录数: 2
+计划创建数: 4
+跳过（已存在）: 0
+
+确认创建吗？输入 yes 继续: yes
+
+正在创建文件...
+[已创建] /media/MovieA/Extras/.ignore
+[已创建] /media/MovieA/Extras/.tmmignore
+[已创建] /media/ShowA/S1/SPs/.ignore
+[已创建] /media/ShowA/S1/SPs/.tmmignore
+```
+
+**第二步** — 运行 `python clean_subfolders.py /media` 并确认 `yes`。
+
+脚本递归遍历所有子目录，含 `.ignore` 的子树整体跳过，其余目录执行清理：
+
+```text
+=== 正在扫描并规划删除 ===
+[计划] /media/MovieA
+  待删除文件:
+    - poster.jpg
+[跳过] /media/MovieA/Extras（发现 .ignore，跳过整棵子树）
+[无需操作] /media/ShowA
+[无需操作] /media/ShowA/S1
+[跳过] /media/ShowA/S1/SPs（发现 .ignore，跳过整棵子树）
+
+=== 汇总 ===
+扫描子目录数: 5
+计划删除文件数（.png/.jpg）: 1
+计划删除目录数: 0
+因 .ignore 跳过的目录树: 2
+
+确认删除吗？输入 yes 继续: yes
+
+正在删除...
+[已删除文件] /media/MovieA/poster.jpg
+```
+
+`MovieA/Extras` 和 `ShowA/S1/SPs` 中的 `poster.jpg` 不受影响，因为这些子树受 `.ignore` 保护。
+
+**第三步** — 运行 `python remove_ignore.py /media` 并确认 `yes`。
+
+脚本采用与 `add_ignore.py` 相同的遍历逻辑，规划并删除所有标记文件：
+
+```text
+MovieA/
+└── Extras/    [计划] 删除 .tmmignore 和 .ignore
+
+ShowA/
+└── S1/
+    └── SPs/   [计划] 删除 .tmmignore 和 .ignore
+
+=== 扫描汇总 ===
+扫描子目录数: 2
+计划删除数: 4
+无需操作数: 0
+
+确认删除吗？输入 yes 继续: yes
+
+正在删除文件...
+[已删除] /media/MovieA/Extras/.tmmignore
+[已删除] /media/MovieA/Extras/.ignore
+[已删除] /media/ShowA/S1/SPs/.tmmignore
+[已删除] /media/ShowA/S1/SPs/.ignore
+```
 
 ## 说明
 

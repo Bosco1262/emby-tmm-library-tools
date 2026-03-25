@@ -171,9 +171,10 @@ Given a library like:
 ```text
 /media
 ├── MovieA
-│   └── Extras
-│       ├── poster.jpg
-│       └── .actors
+│   ├── Extras
+│   │   ├── poster.jpg
+│   │   └── .actors
+│   └── poster.jpg
 └── ShowA
     └── S1
         └── SPs
@@ -181,16 +182,85 @@ Given a library like:
             └── info.nfo
 ```
 
-1. Run `python add_ignore.py /media` and confirm with `yes`.  
-   This creates marker files in first-level media subfolders, for example:
-   - `/media/MovieA/Extras/.ignore`
-   - `/media/MovieA/Extras/.tmmignore`
-   - `/media/ShowA/S1/SPs/.ignore`
-   - `/media/ShowA/S1/SPs/.tmmignore`
-2. Run `python clean_subfolders.py /media`.  
-   During scan, these marked folders are skipped (you will see `[SKIP] ... found .ignore, skip subtree`), so files in those protected trees are not deleted.
-3. Run `python remove_ignore.py /media` and confirm with `yes`.  
-   This removes marker files (`.ignore`, `.tmmignore`) from the same first-level media subfolders after cleanup.
+**Step 1** — Run `python add_ignore.py /media` and confirm with `yes`.
+
+The script scans first-level media subfolders and prints a creation plan:
+
+```text
+MovieA/
+└── Extras/    [PLAN] Both missing, create .ignore and .tmmignore
+
+ShowA/
+└── S1/
+    └── SPs/   [PLAN] Both missing, create .ignore and .tmmignore
+
+=== Scan Summary ===
+Scanned subdirectories: 2
+Planned creations: 4
+Skipped (already existed): 0
+
+Confirm creation? Type yes to continue: yes
+
+Creating files...
+[CREATED] /media/MovieA/Extras/.ignore
+[CREATED] /media/MovieA/Extras/.tmmignore
+[CREATED] /media/ShowA/S1/SPs/.ignore
+[CREATED] /media/ShowA/S1/SPs/.tmmignore
+```
+
+**Step 2** — Run `python clean_subfolders.py /media` and confirm with `yes`.
+
+The script recursively walks all subdirectories. Subfolders with `.ignore` are skipped entirely; others are cleaned:
+
+```text
+=== Scanning and planning deletion ===
+[PLAN] /media/MovieA
+  Files to delete:
+    - poster.jpg
+[SKIP] /media/MovieA/Extras (found .ignore, skip subtree)
+[NOOP] /media/ShowA
+[NOOP] /media/ShowA/S1
+[SKIP] /media/ShowA/S1/SPs (found .ignore, skip subtree)
+
+=== Summary ===
+Scanned subdirectories: 5
+Files planned for deletion (.png/.jpg): 1
+Directories planned for deletion: 0
+Skipped directory trees with .ignore: 2
+
+Confirm deletion? Type yes to continue: yes
+
+Deleting...
+[DELETED FILE] /media/MovieA/poster.jpg
+```
+
+`poster.jpg` inside `MovieA/Extras` and `ShowA/S1/SPs` is untouched because those subtrees are protected by `.ignore`.
+
+**Step 3** — Run `python remove_ignore.py /media` and confirm with `yes`.
+
+The script uses the same traversal logic as `add_ignore.py` and plans removal of all marker files:
+
+```text
+MovieA/
+└── Extras/    [PLAN] Delete .tmmignore and .ignore
+
+ShowA/
+└── S1/
+    └── SPs/   [PLAN] Delete .tmmignore and .ignore
+
+=== Scan Summary ===
+Scanned subdirectories: 2
+Planned deletions: 4
+No-op directories: 0
+
+Confirm deletion? Type yes to continue: yes
+
+Deleting files...
+[DELETED] /media/MovieA/Extras/.tmmignore
+[DELETED] /media/MovieA/Extras/.ignore
+[DELETED] /media/ShowA/S1/SPs/.tmmignore
+[DELETED] /media/ShowA/S1/SPs/.ignore
+```
 
 ## Notes
 

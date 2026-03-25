@@ -168,9 +168,10 @@ python remove_ignore.py /path/to/your/library
 ```text
 /media
 ├── MovieA
-│   └── Extras
-│       ├── poster.jpg
-│       └── .actors
+│   ├── Extras
+│   │   ├── poster.jpg
+│   │   └── .actors
+│   └── poster.jpg
 └── ShowA
     └── S1
         └── SPs
@@ -178,16 +179,85 @@ python remove_ignore.py /path/to/your/library
             └── info.nfo
 ```
 
-1. 运行 `python add_ignore.py /media` 并确认 `yes`。  
-   会在一级媒体子目录中创建标记文件，例如：
-   - `/media/MovieA/Extras/.ignore`
-   - `/media/MovieA/Extras/.tmmignore`
-   - `/media/ShowA/S1/SPs/.ignore`
-   - `/media/ShowA/S1/SPs/.tmmignore`
-2. 再运行 `python clean_subfolders.py /media`。  
-   扫描阶段会跳过上述已标记目录树（会输出 `[SKIP] ... found .ignore, skip subtree`），这些目录中的文件不会被删除。
-3. 最后运行 `python remove_ignore.py /media` 并确认 `yes`。  
-   清理完成后，可将同一批目录中的标记文件（`.ignore`、`.tmmignore`）移除。
+**第一步** — 运行 `python add_ignore.py /media` 并确认 `yes`。
+
+脚本扫描一级媒体子目录并输出创建计划：
+
+```text
+MovieA/
+└── Extras/    [计划] 两者都不存在，创建 .ignore 与 .tmmignore
+
+ShowA/
+└── S1/
+    └── SPs/   [计划] 两者都不存在，创建 .ignore 与 .tmmignore
+
+=== 扫描汇总 ===
+扫描子目录数: 2
+计划创建数: 4
+跳过（已存在）: 0
+
+确认创建吗？输入 yes 继续: yes
+
+正在创建文件...
+[已创建] /media/MovieA/Extras/.ignore
+[已创建] /media/MovieA/Extras/.tmmignore
+[已创建] /media/ShowA/S1/SPs/.ignore
+[已创建] /media/ShowA/S1/SPs/.tmmignore
+```
+
+**第二步** — 运行 `python clean_subfolders.py /media` 并确认 `yes`。
+
+脚本递归遍历所有子目录，含 `.ignore` 的子树整体跳过，其余目录执行清理：
+
+```text
+=== 正在扫描并规划删除 ===
+[计划] /media/MovieA
+  待删除文件:
+    - poster.jpg
+[跳过] /media/MovieA/Extras（发现 .ignore，跳过整棵子树）
+[无需操作] /media/ShowA
+[无需操作] /media/ShowA/S1
+[跳过] /media/ShowA/S1/SPs（发现 .ignore，跳过整棵子树）
+
+=== 汇总 ===
+扫描子目录数: 5
+计划删除文件数（.png/.jpg）: 1
+计划删除目录数: 0
+因 .ignore 跳过的目录树: 2
+
+确认删除吗？输入 yes 继续: yes
+
+正在删除...
+[已删除文件] /media/MovieA/poster.jpg
+```
+
+`MovieA/Extras` 和 `ShowA/S1/SPs` 中的 `poster.jpg` 不受影响，因为这些子树受 `.ignore` 保护。
+
+**第三步** — 运行 `python remove_ignore.py /media` 并确认 `yes`。
+
+脚本采用与 `add_ignore.py` 相同的遍历逻辑，规划并删除所有标记文件：
+
+```text
+MovieA/
+└── Extras/    [计划] 删除 .tmmignore 和 .ignore
+
+ShowA/
+└── S1/
+    └── SPs/   [计划] 删除 .tmmignore 和 .ignore
+
+=== 扫描汇总 ===
+扫描子目录数: 2
+计划删除数: 4
+无需操作数: 0
+
+确认删除吗？输入 yes 继续: yes
+
+正在删除文件...
+[已删除] /media/MovieA/Extras/.tmmignore
+[已删除] /media/MovieA/Extras/.ignore
+[已删除] /media/ShowA/S1/SPs/.tmmignore
+[已删除] /media/ShowA/S1/SPs/.ignore
+```
 
 ## 说明
 

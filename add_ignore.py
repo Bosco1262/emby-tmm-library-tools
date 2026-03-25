@@ -2,6 +2,7 @@ import argparse
 import os
 from pathlib import PurePosixPath
 import re
+import unicodedata
 
 
 SEASON_DIR_PATTERN = re.compile(r"^S\d+$", re.IGNORECASE)
@@ -10,7 +11,7 @@ MESSAGES = {
         "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (默认 zh): ",
         "plan_header": "\n{media_label}",
         "plan_header_noop": "\n{media_label} {detail}",
-        "noop_dir": "[无需操作] 目录内不存在需要操作的文件",
+        "noop_dir": "[无需操作] 目录内不存在需要操作的子目录。",
         "skip_actors": "[跳过] 跳过 .actors 目录",
         "both_exists": "[无需操作] .ignore/.tmmignore 均已存在，跳过",
         "has_ignore": "[计划] 已有 .ignore，创建 .tmmignore",
@@ -88,8 +89,19 @@ def iter_media_base_dirs(root_dir: str):
 
 
 def flush_media_plan(media_label: str, plan_rows, messages):
+    def display_width(text: str) -> int:
+        width = 0
+        for ch in text:
+            width += 2 if unicodedata.east_asian_width(ch) in ("F", "W") else 1
+        return width
+
+    def pad_to_width(text: str, target_width: int) -> str:
+        return text + (" " * max(0, target_width - display_width(text)))
+
     if not plan_rows:
-        print(messages["plan_header_noop"].format(media_label=media_label, detail=messages["noop_dir"]))
+        media_line = f"{media_label}"
+        aligned_media = pad_to_width(media_line, 20)
+        print(messages["plan_header_noop"].format(media_label=aligned_media, detail=messages["noop_dir"]))
         return
     print(messages["plan_header"].format(media_label=media_label))
 
@@ -105,22 +117,29 @@ def flush_media_plan(media_label: str, plan_rows, messages):
             node = children[part]
         node["detail"] = detail
 
-    def print_tree(node, prefix=""):
+    lines = []
+
+    def collect_lines(node, prefix=""):
         children = list(node["children"].items())
         for index, (name, child) in enumerate(children):
             is_last = index == len(children) - 1
             branch = "└──" if is_last else "├──"
             child_prefix = "    " if is_last else "│   "
-            line = (
-                f"{prefix}{branch} {name}/ {child['detail']}"
-                if child["detail"]
-                else f"{prefix}{branch} {name}/"
-            )
-            print(line)
+            line_head = f"{prefix}{branch} {name}/"
+            lines.append((line_head, child["detail"]))
             if child["children"]:
-                print_tree(child, prefix + child_prefix)
+                collect_lines(child, prefix + child_prefix)
 
-    print_tree(root)
+    collect_lines(root)
+    detail_lines = [line_head for line_head, detail in lines if detail]
+    max_head_width = max((display_width(line_head) for line_head in detail_lines), default=0)
+
+    for line_head, detail in lines:
+        if detail:
+            aligned_head = pad_to_width(line_head, max_head_width)
+            print(f"{aligned_head} {detail}")
+        else:
+            print(line_head)
 
 
 def collect_creation_targets(root_dir: str, messages):

@@ -23,32 +23,54 @@ def iter_media_base_dirs(root_dir: str):
 
         if season_dirs:
             for season_dir in season_dirs:
-                yield season_dir, False
+                yield entry.path, season_dir, False
             for non_season_dir in non_season_dirs:
-                yield non_season_dir, True
+                yield entry.path, non_season_dir, True
         else:
-            yield entry.path, False
+            yield entry.path, entry.path, False
+
+
+def flush_media_plan(media_label: str, plan_rows):
+    print(f"\n[PLAN] {media_label}")
+    if not plan_rows:
+        print("└── [D] 目录下无需操作")
+        return
+
+    for index, (dir_label, detail) in enumerate(plan_rows):
+        is_last = index == len(plan_rows) - 1
+        branch = "└──" if is_last else "├──"
+        sub_branch = "    " if is_last else "│   "
+        print(f"{branch} {dir_label}")
+        print(f"{sub_branch}└── {detail}")
 
 
 def collect_creation_targets(root_dir: str):
     targets = []
     scanned_subdirs = 0
     skipped_count = 0
+    current_media_root = None
+    plan_rows = []
 
-    for base_dir, scan_self in iter_media_base_dirs(root_dir):
+    for media_root, base_dir, scan_self in iter_media_base_dirs(root_dir):
+        if current_media_root != media_root:
+            if current_media_root is not None:
+                media_label = f"{os.path.basename(current_media_root)}/"
+                flush_media_plan(media_label, plan_rows)
+            current_media_root = media_root
+            plan_rows = []
+
         if scan_self:
             dirs_to_scan = [base_dir]
         else:
             with os.scandir(base_dir) as entries:
-                dirs_to_scan = [
-                    entry.path
-                    for entry in entries
-                    if entry.is_dir() and entry.name != ".actors"
-                ]
+                dirs_to_scan = [entry.path for entry in entries if entry.is_dir()]
 
         for current_dir in dirs_to_scan:
-            if scan_self and os.path.basename(current_dir) == ".actors":
-                print(f"[SKIP] Skip .actors directory: {current_dir}")
+            rel_path = os.path.relpath(current_dir, media_root).replace(os.sep, "/")
+            dir_label = f"{rel_path}/"
+
+            if os.path.basename(current_dir) == ".actors":
+                plan_rows.append((dir_label, "[SKIP] 跳过 .actors 目录"))
                 continue
             with os.scandir(current_dir) as children:
                 filenames = {child.name for child in children if child.is_file()}
@@ -60,14 +82,23 @@ def collect_creation_targets(root_dir: str):
 
             if not has_ignore:
                 targets.append(ignore_path)
-                print(f"[PLAN] Create: {ignore_path}")
-            else:
-                skipped_count += 1
             if not has_tmmignore:
                 targets.append(tmmignore_path)
-                print(f"[PLAN] Create: {tmmignore_path}")
-            else:
+            if has_ignore and has_tmmignore:
+                plan_rows.append((dir_label, "[A] .ignore/.tmmignore 均已存在，跳过"))
+                skipped_count += 2
+            elif has_ignore and not has_tmmignore:
+                plan_rows.append((dir_label, "[B] 已有 .ignore，创建 .tmmignore"))
                 skipped_count += 1
+            elif not has_ignore and has_tmmignore:
+                plan_rows.append((dir_label, "[B] 已有 .tmmignore，创建 .ignore"))
+                skipped_count += 1
+            else:
+                plan_rows.append((dir_label, "[C] 两者都不存在，创建 .ignore 与 .tmmignore"))
+
+    if current_media_root is not None:
+        media_label = f"{os.path.basename(current_media_root)}/"
+        flush_media_plan(media_label, plan_rows)
 
     return targets, scanned_subdirs, skipped_count
 

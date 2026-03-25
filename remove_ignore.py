@@ -237,7 +237,6 @@ def remove_ignore_and_tmmignore(root_dir: str):
 
     print(messages["done"])
     print(messages["deleted_count"].format(count=deleted_count))
-    print(messages["noop_count"].format(count=noop_count))
     print(messages["errors"].format(count=error_count))
 
 

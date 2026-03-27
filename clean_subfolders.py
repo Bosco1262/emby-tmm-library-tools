@@ -5,9 +5,13 @@ import shutil
 
 BASE_EXTENSIONS = {".png", ".jpg"}
 NFO_EXTENSION = ".nfo"
+THEME_MP3_FILENAME = "theme.mp3"
 MESSAGES = {
     "zh": {
         "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (默认 zh): ",
+        "ask_delete_theme": "是否删除 theme.mp3 文件？[y/N]: ",
+        "theme_yes": "theme.mp3 文件将会被删除。",
+        "theme_no": "theme.mp3 文件不会被删除。",
         "ask_delete_nfo": "是否删除 .nfo 文件？[y/N]: ",
         "nfo_yes": ".nfo 文件将会被删除。",
         "nfo_no": ".nfo 文件不会被删除。",
@@ -37,6 +41,9 @@ MESSAGES = {
     },
     "en": {
         "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (default zh): ",
+        "ask_delete_theme": "Delete theme.mp3 files? [y/N]: ",
+        "theme_yes": "theme.mp3 files WILL be deleted.",
+        "theme_no": "theme.mp3 files will NOT be deleted.",
         "ask_delete_nfo": "Delete .nfo files? [y/N]: ",
         "nfo_yes": ".nfo files WILL be deleted.",
         "nfo_no": ".nfo files will NOT be deleted.",
@@ -72,7 +79,7 @@ def choose_language() -> str:
     return "en" if answer == "en" else "zh"
 
 
-def collect_targets(root_dir: str, messages, delete_nfo: bool = False):
+def collect_targets(root_dir: str, messages, delete_nfo: bool = False, delete_theme: bool = False):
     target_extensions = BASE_EXTENSIONS | ({NFO_EXTENSION} if delete_nfo else set())
 
     files_to_delete = []
@@ -107,7 +114,7 @@ def collect_targets(root_dir: str, messages, delete_nfo: bool = False):
         # 收集当前目录下要删除的文件
         for filename in filenames:
             _, ext = os.path.splitext(filename)
-            if ext.lower() in target_extensions:
+            if ext.lower() in target_extensions or (delete_theme and filename.lower() == THEME_MP3_FILENAME):
                 files_to_delete.append(os.path.join(current_dir, filename))
                 planned_filenames.append(filename)
 
@@ -160,6 +167,14 @@ def apply_deletion(files_to_delete, dirs_to_delete, messages):
 
 def main(root_dir: str):
     messages = MESSAGES[choose_language()]
+    # 询问是否删除 theme.mp3 文件（默认：否）
+    theme_answer = input(messages["ask_delete_theme"]).strip().lower()
+    delete_theme = theme_answer in ("y", "yes")
+    if delete_theme:
+        print(messages["theme_yes"])
+    else:
+        print(messages["theme_no"])
+
     # 询问是否删除 .nfo 文件（默认：否）
     nfo_answer = input(messages["ask_delete_nfo"]).strip().lower()
     delete_nfo = nfo_answer in ("y", "yes")
@@ -170,10 +185,16 @@ def main(root_dir: str):
 
     print(messages["scanning_header"])
     files_to_delete, dirs_to_delete, skipped_ignore_trees, scanned_subdirs = collect_targets(
-        root_dir, messages, delete_nfo=delete_nfo
+        root_dir, messages, delete_nfo=delete_nfo, delete_theme=delete_theme
     )
 
-    file_types_label = ".nfo/.png/.jpg" if delete_nfo else ".png/.jpg"
+    type_parts = []
+    if delete_theme:
+        type_parts.append("theme.mp3")
+    if delete_nfo:
+        type_parts.append(".nfo")
+    type_parts += [".png", ".jpg"]
+    file_types_label = "/".join(type_parts)
     print(messages["summary_header"])
     print(messages["scanned_subdirs"].format(count=scanned_subdirs))
     print(messages["files_planned"].format(types=file_types_label, count=len(files_to_delete)))
@@ -201,7 +222,7 @@ def main(root_dir: str):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="先预览后确认：删除无 .ignore 目录中的 .nfo/.png/.jpg 文件，并删除 .actors；遇到 .ignore 跳过整棵子树"
+        description="先预览后确认：删除无 .ignore 目录中的 theme.mp3/.nfo/.png/.jpg 文件，并删除 .actors；遇到 .ignore 跳过整棵子树"
     )
     parser.add_argument("root_dir", help="要扫描的根目录路径")
     args = parser.parse_args()

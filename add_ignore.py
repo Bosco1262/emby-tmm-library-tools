@@ -14,6 +14,7 @@ MESSAGES = {
         "plan_header_noop": "\n{media_label} {detail}",
         "noop_dir": "[无需操作] 目录内不存在需要操作的子目录。",
         "skip_actors": "[跳过] 跳过 .actors 目录",
+        "skip_deleted_by_tmm": "[跳过] 跳过 .deletedByTMM 目录",
         "both_exists": "[跳过] .ignore/.tmmignore 均已存在",
         "has_ignore": "[计划] 已有 .ignore，创建 .tmmignore",
         "has_tmmignore": "[计划] 已有 .tmmignore，创建 .ignore",
@@ -38,6 +39,7 @@ MESSAGES = {
         "plan_header_noop": "\n{media_label} {detail}",
         "noop_dir": "[NOOP] No files in this directory require action",
         "skip_actors": "[SKIP] Skip .actors directory",
+        "skip_deleted_by_tmm": "[SKIP] Skip .deletedByTMM directory",
         "both_exists": "[SKIP] .ignore/.tmmignore already exist",
         "has_ignore": "[PLAN] .ignore exists, create .tmmignore",
         "has_tmmignore": "[PLAN] .tmmignore exists, create .ignore",
@@ -89,7 +91,7 @@ def iter_media_base_dirs(root_dir: str):
             yield entry.path, entry.path, False
 
 
-def flush_media_plan(media_label: str, plan_rows, messages):
+def flush_media_plan(media_label: str, plan_rows, messages, forced_detail=None):
     def display_width(text: str) -> int:
         width = 0
         for ch in text:
@@ -100,10 +102,11 @@ def flush_media_plan(media_label: str, plan_rows, messages):
     def pad_to_width(text: str, target_width: int) -> str:
         return text + (" " * max(0, target_width - display_width(text)))
 
-    if not plan_rows:
+    if forced_detail is not None or not plan_rows:
         media_line = f"{media_label}"
         aligned_media = pad_to_width(media_line, MEDIA_LABEL_WIDTH)
-        print(messages["plan_header_noop"].format(media_label=aligned_media, detail=messages["noop_dir"]))
+        detail = forced_detail if forced_detail is not None else messages["noop_dir"]
+        print(messages["plan_header_noop"].format(media_label=aligned_media, detail=detail))
         return
     print(messages["plan_header"].format(media_label=media_label))
 
@@ -157,6 +160,15 @@ def collect_creation_targets(root_dir: str, messages):
                 flush_media_plan(media_label, plan_rows, messages)
             current_media_root = media_root
             plan_rows = []
+
+        # 跳过根目录下的 .deletedByTMM 文件夹，不扫描其内容
+        if os.path.basename(media_root) == ".deletedByTMM":
+            flush_media_plan(
+                f"{os.path.basename(media_root)}/", [], messages,
+                forced_detail=messages["skip_deleted_by_tmm"],
+            )
+            current_media_root = None  # 此媒体根已处理，重置状态避免重复刷新
+            continue
 
         if scan_self:
             dirs_to_scan = [base_dir]

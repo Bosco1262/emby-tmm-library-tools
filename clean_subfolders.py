@@ -33,7 +33,7 @@ MESSAGES = {
         "error_dir": "[错误] 删除目录失败: {path} ({error})",
         "done": "\n完成。",
         "deleted_files_summary": "已删除文件（{types}）: {count}",
-        "deleted_dirs_summary": "已删除 '.actors' 目录: {count}",
+        "deleted_dirs_summary": "已删除特殊目录（.actors/.deletedByTMM）: {count}",
     },
     "en": {
         "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (default zh): ",
@@ -62,7 +62,7 @@ MESSAGES = {
         "error_dir": "[ERROR] Failed to delete directory: {path} ({error})",
         "done": "\nDone.",
         "deleted_files_summary": "Deleted files ({types}): {count}",
-        "deleted_dirs_summary": "Deleted '.actors' directories: {count}",
+        "deleted_dirs_summary": "Deleted special directories (.actors/.deletedByTMM): {count}",
     },
 }
 
@@ -83,6 +83,15 @@ def collect_targets(root_dir: str, messages, delete_nfo: bool = False):
     for current_dir, dirnames, filenames in os.walk(root_dir, topdown=True):
         # 根目录本身不处理删除逻辑，但继续遍历它的子目录
         if current_dir == root_dir:
+            # 根目录下的 .deletedByTMM 文件夹整体删除，阻止 os.walk 进入其内部
+            if ".deletedByTMM" in dirnames:
+                deleted_by_tmm_path = os.path.join(root_dir, ".deletedByTMM")
+                if os.path.isdir(deleted_by_tmm_path):
+                    dirs_to_delete.append(deleted_by_tmm_path)
+                dirnames.remove(".deletedByTMM")
+                print(messages["plan_dir"].format(path=root_dir))
+                print(messages["plan_dirs"])
+                print(messages["plan_item"].format(item=".deletedByTMM/"))
             continue
         scanned_subdirs += 1
 

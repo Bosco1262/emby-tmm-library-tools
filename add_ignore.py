@@ -14,6 +14,7 @@ MESSAGES = {
         "plan_header_noop": "\n{media_label} {detail}",
         "noop_dir": "[无需操作] 目录内不存在需要操作的子目录。",
         "skip_actors": "[跳过] 跳过 .actors 目录",
+        "skip_deleted_by_tmm": "[跳过] 跳过 .deletedByTMM 目录",
         "both_exists": "[跳过] .ignore/.tmmignore 均已存在",
         "has_ignore": "[计划] 已有 .ignore，创建 .tmmignore",
         "has_tmmignore": "[计划] 已有 .tmmignore，创建 .ignore",
@@ -38,6 +39,7 @@ MESSAGES = {
         "plan_header_noop": "\n{media_label} {detail}",
         "noop_dir": "[NOOP] No files in this directory require action",
         "skip_actors": "[SKIP] Skip .actors directory",
+        "skip_deleted_by_tmm": "[SKIP] Skip .deletedByTMM directory",
         "both_exists": "[SKIP] .ignore/.tmmignore already exist",
         "has_ignore": "[PLAN] .ignore exists, create .tmmignore",
         "has_tmmignore": "[PLAN] .tmmignore exists, create .ignore",
@@ -70,6 +72,11 @@ def iter_media_base_dirs(root_dir: str):
         if not entry.is_dir():
             continue
 
+        # .deletedByTMM 目录直接返回哨兵信号（base_dir=None），由调用方展示跳过信息
+        if entry.name == ".deletedByTMM":
+            yield entry.path, None, None
+            continue
+
         season_dirs = []
         non_season_dirs = []
         for child in os.scandir(entry.path):
@@ -89,7 +96,7 @@ def iter_media_base_dirs(root_dir: str):
             yield entry.path, entry.path, False
 
 
-def flush_media_plan(media_label: str, plan_rows, messages):
+def flush_media_plan(media_label: str, plan_rows, messages, skip_msg=None):
     def display_width(text: str) -> int:
         width = 0
         for ch in text:
@@ -103,7 +110,9 @@ def flush_media_plan(media_label: str, plan_rows, messages):
     if not plan_rows:
         media_line = f"{media_label}"
         aligned_media = pad_to_width(media_line, MEDIA_LABEL_WIDTH)
-        print(messages["plan_header_noop"].format(media_label=aligned_media, detail=messages["noop_dir"]))
+        # skip_msg 优先（如 .deletedByTMM），否则使用默认"无需操作"
+        detail = skip_msg if skip_msg is not None else messages["noop_dir"]
+        print(messages["plan_header_noop"].format(media_label=aligned_media, detail=detail))
         return
     print(messages["plan_header"].format(media_label=media_label))
 
@@ -148,15 +157,22 @@ def collect_creation_targets(root_dir: str, messages):
     scanned_subdirs = 0
     skipped_count = 0
     current_media_root = None
+    current_skip_msg = None  # 当前媒体根的跳过信息（如 .deletedByTMM）
     plan_rows = []
 
     for media_root, base_dir, scan_self in iter_media_base_dirs(root_dir):
         if current_media_root != media_root:
             if current_media_root is not None:
                 media_label = f"{os.path.basename(current_media_root)}/"
-                flush_media_plan(media_label, plan_rows, messages)
+                flush_media_plan(media_label, plan_rows, messages, skip_msg=current_skip_msg)
             current_media_root = media_root
+            current_skip_msg = None
             plan_rows = []
+
+        # 哨兵信号：.deletedByTMM 目录，跳过整个目录不做任何处理
+        if base_dir is None:
+            current_skip_msg = messages["skip_deleted_by_tmm"]
+            continue
 
         if scan_self:
             dirs_to_scan = [base_dir]
@@ -203,7 +219,7 @@ def collect_creation_targets(root_dir: str, messages):
 
     if current_media_root is not None:
         media_label = f"{os.path.basename(current_media_root)}/"
-        flush_media_plan(media_label, plan_rows, messages)
+        flush_media_plan(media_label, plan_rows, messages, skip_msg=current_skip_msg)
 
     return targets, scanned_subdirs, skipped_count
 

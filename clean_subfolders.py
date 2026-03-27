@@ -33,7 +33,7 @@ MESSAGES = {
         "error_dir": "[错误] 删除目录失败: {path} ({error})",
         "done": "\n完成。",
         "deleted_files_summary": "已删除文件（{types}）: {count}",
-        "deleted_dirs_summary": "已删除 '.actors' 目录: {count}",
+        "deleted_dirs_summary": "已删除目录（.actors / .deletedByTMM）: {count}",
     },
     "en": {
         "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (default zh): ",
@@ -62,7 +62,7 @@ MESSAGES = {
         "error_dir": "[ERROR] Failed to delete directory: {path} ({error})",
         "done": "\nDone.",
         "deleted_files_summary": "Deleted files ({types}): {count}",
-        "deleted_dirs_summary": "Deleted '.actors' directories: {count}",
+        "deleted_dirs_summary": "Deleted directories (.actors / .deletedByTMM): {count}",
     },
 }
 
@@ -91,6 +91,16 @@ def collect_targets(root_dir: str, messages, delete_nfo: bool = False):
             skipped_ignore_trees.append(current_dir)
             print(messages["skip_ignore_tree"].format(path=current_dir))
             dirnames.clear()  # 阻止 os.walk 继续进入其子目录
+            continue
+
+        # 检查是否为根目录下的 .deletedByTMM 目录（整个目录标记删除，不递归内部）
+        if os.path.basename(current_dir) == ".deletedByTMM" and os.path.dirname(current_dir) == root_dir:
+            dirs_to_delete.append(current_dir)
+            dirnames.clear()  # 阻止继续遍历 .deletedByTMM 内部
+            # 以父目录（根目录）为计划行展示，与 .actors 格式保持一致
+            print(messages["plan_dir"].format(path=os.path.dirname(current_dir)))
+            print(messages["plan_dirs"])
+            print(messages["plan_item"].format(item=".deletedByTMM/"))
             continue
 
         planned_filenames = []

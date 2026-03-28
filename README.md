@@ -11,19 +11,19 @@ This repository currently includes scripts to:
 1. Add `.ignore` and `.tmmignore`:
    - in first-level subfolders under movie bases (`MovieName/*`)
    - in first-level subfolders under show/season bases (`ShowName/S1/*`) and directly in season-layout sibling non-season dirs (`ShowName/Extra`, `ShowName/SPs`, etc.)
-2. Remove `.ignore` and `.tmmignore`:
-   - in the same first-level media subfolders scanned by `add_ignore.py`
-3. In subfolders **without** `.ignore`:
+2. In subfolders **without** `.ignore`:
    - Delete `.png`, `.jpg` files (and optionally `theme.mp3` and `.nfo` files)
    - Delete `.actors` directory if it exists
    - Delete `.deletedByTMM` directory at root level if it exists
+3. Remove `.ignore` and `.tmmignore`:
+   - in the same first-level media subfolders scanned by `1.add_ignore.py`
 4. Recursively delete junk files across all subfolders under the root:
    - `.bif` files (matched by extension, case-insensitive)
    - `.DS_Store` and `Thumbs.db` (matched by exact name)
 
 ## Scripts
 
-- `add_ignore.py`  
+- `1.add_ignore.py`  
   Scans first-level media directories under the root.  
   Supports two structures:
   - `Root/MovieName/*`
@@ -31,18 +31,18 @@ This repository currently includes scripts to:
   Uses a scan + confirm workflow.  
   After you type `yes`, it creates missing `.ignore` and `.tmmignore` files in target directories.
 
-- `clean_subfolders.py`  
+- `2.clean_subfolders.py`  
   Scans all subfolders under a root directory.  
   Uses a scan + confirm workflow.  
   At startup asks whether to also delete `theme.mp3` and/or `.nfo` files.  
   For subfolders without `.ignore`, it deletes image files (`.png`, `.jpg`) and any optional file types you selected, and removes `.actors` directories. At root level, the `.deletedByTMM` directory is planned for deletion as a whole if present.
 
-- `remove_ignore.py`  
-  Uses the same media traversal logic as `add_ignore.py`.  
+- `3.remove_ignore.py`  
+  Uses the same media traversal logic as `1.add_ignore.py`.  
   Uses a scan + confirm workflow.  
   It plans and deletes existing `.ignore`/`.tmmignore` in target first-level media subfolders.
 
-- `clean_junk.py`  
+- `4.clean_junk.py`  
   Recursively scans all directories under each top-level entry in the root.  
   Uses a scan + confirm workflow.  
   Deletes `.bif` files (by extension, case-insensitive), `.DS_Store`, and `Thumbs.db` wherever they are found.  
@@ -54,10 +54,10 @@ This repository currently includes scripts to:
 
 ## Usage
 
-### 1) `add_ignore.py` — Add `.ignore` and `.tmmignore` to media subfolders
+### 1) `1.add_ignore.py` — Add `.ignore` and `.tmmignore` to media subfolders
 
 ```bash
-python add_ignore.py /path/to/your/library
+python 1.add_ignore.py /path/to/your/library
 ```
 
 The script first asks for output language:
@@ -93,12 +93,12 @@ Confirm creation? Type yes to continue:
 
 Type `yes` to create the missing `.ignore` and `.tmmignore` files. Any other input cancels without making changes.
 
-### 2) `clean_subfolders.py` — Delete image files and `.actors` directories in subfolders without `.ignore`
+### 2) `2.clean_subfolders.py` — Delete image files and `.actors` directories in subfolders without `.ignore`
 
-> **⚠ Run `add_ignore.py` first to mark folders you want to protect, or files in those folders may be deleted.**
+> **⚠ Run `1.add_ignore.py` first to mark folders you want to protect, or files in those folders may be deleted.**
 
 ```bash
-python clean_subfolders.py /path/to/your/library
+python 2.clean_subfolders.py /path/to/your/library
 ```
 
 The script first asks for output language:
@@ -153,10 +153,10 @@ Confirm deletion? Type yes to continue:
 
 Type `yes` to delete the planned image files (`.png`, `.jpg`, and any optional types you selected), `.actors` directories, and the `.deletedByTMM` root directory if present. Any other input cancels without making changes.
 
-### 3) `remove_ignore.py` — Remove `.ignore` and `.tmmignore` from media subfolders
+### 3) `3.remove_ignore.py` — Remove `.ignore` and `.tmmignore` from media subfolders
 
 ```bash
-python remove_ignore.py /path/to/your/library
+python 3.remove_ignore.py /path/to/your/library
 ```
 
 The script first asks for output language:
@@ -165,7 +165,7 @@ The script first asks for output language:
 请选择输出语言 / Please choose output language [zh/en] (default zh):
 ```
 
-It uses the same media traversal logic as `add_ignore.py` and prints a planned deletion tree grouped by media root. Each entry is labeled with one of:
+It uses the same media traversal logic as `1.add_ignore.py` and prints a planned deletion tree grouped by media root. Each entry is labeled with one of:
 
 - `[NOOP] No files in this directory require action` — no marker files found
 - `[PLAN] Delete .tmmignore and .ignore` — both files will be deleted
@@ -189,10 +189,10 @@ Confirm deletion? Type yes to continue:
 
 Type `yes` to delete the marker files. Any other input cancels without making changes.
 
-### 4) `clean_junk.py` — Recursively delete junk files (`.bif`, `.DS_Store`, `Thumbs.db`)
+### 4) `4.clean_junk.py` — Recursively delete junk files (`.bif`, `.DS_Store`, `Thumbs.db`)
 
 ```bash
-python clean_junk.py /path/to/your/library
+python 4.clean_junk.py /path/to/your/library
 ```
 
 The script first asks for output language:
@@ -256,7 +256,7 @@ Given a library like:
         └── ep0.jpg
 ```
 
-**Step 1** — Run `python add_ignore.py /media` and confirm with `yes`.
+**Step 1** — Run `python 1.add_ignore.py /media` and confirm with `yes`.
 
 The script scans first-level media subfolders and prints a creation plan:
 
@@ -295,7 +295,7 @@ Creating files...
 - `.actors` inside `MovieA` is also skipped.
 - `Specials` is a non-season sibling of `S1`; it is treated as a direct creation target (marker files are created inside `ShowA/Specials` itself, not in its children).
 
-**Step 2** — Run `python clean_subfolders.py /media`, answer `y` to delete `theme.mp3`, answer `N` for `.nfo`, then confirm with `yes`.
+**Step 2** — Run `python 2.clean_subfolders.py /media`, answer `y` to delete `theme.mp3`, answer `N` for `.nfo`, then confirm with `yes`.
 
 The script recursively walks all subdirectories. The root-level `.deletedByTMM` is planned for whole-directory deletion. Subfolders with `.ignore` are skipped entirely; others are cleaned:
 
@@ -334,9 +334,9 @@ Deleting...
 
 Files inside `MovieA/Extras`, `ShowA/S1/Featurettes`, `ShowA/S1/SPs`, and `ShowA/Specials` are untouched because those subtrees are protected by `.ignore`.
 
-**Step 3** — Run `python remove_ignore.py /media` and confirm with `yes`.
+**Step 3** — Run `python 3.remove_ignore.py /media` and confirm with `yes`.
 
-The script uses the same traversal logic as `add_ignore.py` and plans removal of all marker files:
+The script uses the same traversal logic as `1.add_ignore.py` and plans removal of all marker files:
 
 ```text
 MovieA/
@@ -366,79 +366,91 @@ Deleting files...
 [DELETED] /media/ShowA/Specials/.ignore
 ```
 
-### `clean_junk.py` — standalone example
+**Step 4** — Run `python 4.clean_junk.py /media`.
 
-`clean_junk.py` is independent of the `.ignore` workflow and can be run at any time. It recurses into all subdirectories of each top-level entry, so it covers any nesting depth. Given a library like:
+`4.clean_junk.py` is independent of the `.ignore` workflow and can be run at any time. It recurses into all subdirectories of each top-level entry, covering any nesting depth. The following library is designed to show every possible output case:
 
 ```text
 /media
+├── Thumbs.db
+├── CleanMovie
+│   └── Extras
+│       └── video.mkv
 ├── MovieA
 │   ├── .DS_Store
-│   └── Bonus
-│       └── Behind the Scenes
-│           ├── Thumbs.db
-│           └── Interviews
-│               └── intro.BIF
+│   ├── Bonus
+│   │   ├── clip.bif
+│   │   └── Behind the Scenes
+│   │       └── intro.BIF
+│   └── Extras
+│       └── poster.jpg
 └── ShowB
-    └── S2
-        └── Extras
-            ├── chapter00.bif
-            ├── chapter01.bif
-            ├── Thumbs.db
+    └── S1
+        └── Featurettes
+            ├── chapter.bif
             └── Scenes
                 └── clip.DS_Store
 ```
 
-Run `python clean_junk.py /media`:
-
 ```text
+/media
+└── Thumbs.db [PLAN] Delete Thumbs.db
+
+/media
+└── CleanMovie [NOOP] No junk files found in this directory
+
 /media
 └── MovieA
     ├── .DS_Store [PLAN] Delete .DS_Store
-    └── Bonus
-        └── Behind the Scenes
-            ├── Thumbs.db [PLAN] Delete Thumbs.db
-            └── Interviews
-                └── intro.BIF [PLAN] Delete intro.BIF
+    ├── Bonus
+    │   ├── clip.bif [PLAN] Delete clip.bif
+    │   └── Behind the Scenes
+    │       └── intro.BIF [PLAN] Delete intro.BIF
+    └── Extras    [NOOP] No junk files found in this directory
 
 /media
 └── ShowB
-    └── S2
-        └── Extras
-            ├── chapter00.bif [PLAN] Delete chapter00.bif
-            ├── chapter01.bif [PLAN] Delete chapter01.bif
-            ├── Thumbs.db     [PLAN] Delete Thumbs.db
-            └── Scenes        [NOOP] No junk files found in this directory
+    └── S1
+        └── Featurettes
+            ├── chapter.bif [PLAN] Delete chapter.bif
+            └── Scenes      [NOOP] No junk files found in this directory
 
 === Scan Summary ===
-Scanned directories: 8
-Planned file deletions: 6
-Top-level entries with no junk: 0
+Scanned directories: 10
+Planned file deletions: 5
+Top-level entries with no junk: 1
 
 Confirm deletion? Type yes to continue: yes
 
 Deleting files...
+[DELETED] /media/Thumbs.db
 [DELETED] /media/MovieA/.DS_Store
-[DELETED] /media/MovieA/Bonus/Behind the Scenes/Thumbs.db
-[DELETED] /media/MovieA/Bonus/Behind the Scenes/Interviews/intro.BIF
-[DELETED] /media/ShowB/S2/Extras/Thumbs.db
-[DELETED] /media/ShowB/S2/Extras/chapter00.bif
-[DELETED] /media/ShowB/S2/Extras/chapter01.bif
+[DELETED] /media/MovieA/Bonus/clip.bif
+[DELETED] /media/MovieA/Bonus/Behind the Scenes/intro.BIF
+[DELETED] /media/ShowB/S1/Featurettes/chapter.bif
+
+Done.
+Deleted: 5
+Errors: 0
 ```
 
 Notes on the output above:
 
-- **Header printed before scanning**: for each top-level entry, the root path and `└── EntryName` line appear immediately before the subtree is scanned, so you see real-time progress even on large libraries.
-- **Each junk file appears on its own tree line**: `Extras/` has three junk files (`Thumbs.db`, `chapter00.bif`, `chapter01.bif`); each is shown as an individual labeled node, and all three are deleted together after confirmation.
-- **`Scenes/` appears as `[NOOP]`**: `Scenes/` contains only `clip.DS_Store`, which does not match any junk pattern (`.DS_Store` is matched by exact filename, so `clip.DS_Store` is left untouched). Because `Scenes/` has no junk files and no subdirectories it is shown as a noop leaf in the tree; the directory itself is not deleted.
-- **Sibling alignment**: within each group of siblings, names of different lengths are padded so that all status labels start at the same column (see `Thumbs.db` and `Scenes` under `Extras/`).
+- **Root-level junk** (`Thumbs.db`): junk files found directly under the root directory (not inside any top-level entry) are shown first as a standalone block, using `├──`/`└──` branches and `[PLAN]` labels, before any per-entry output.
+- **Entry with no junk (`CleanMovie`)**: when an entry's entire subtree contains no junk, the `[NOOP]` label is appended on the same line as the entry header. The header is printed before scanning begins; the label is added inline after the scan completes.
+- **Junk directly in an entry's root (`MovieA/.DS_Store`)**: `.DS_Store` sits directly inside `MovieA/`. Junk files at any directory level always appear as child nodes before subdirectories in the same group.
+- **Directory with both junk and subdirs (`Bonus`)**: `clip.bif` (junk) and `Behind the Scenes` (subdir) share the same parent. Junk files are listed first, then subdirectories. `Bonus` itself carries no label and expands into its children.
+- **Deep-nested junk (`Behind the Scenes/intro.BIF`)**: `intro.BIF` is the only file; `Behind the Scenes` is shown as an unlabeled intermediate node that expands to its single junk leaf.
+- **Leaf directory with no junk (`MovieA/Extras`)**: `Extras/` contains only `poster.jpg` (not a junk file). Since it has no junk and no subdirectories, it is shown as a `[NOOP]` leaf node.
+- **Non-matching file (`Scenes/clip.DS_Store`)**: `.DS_Store` is matched only by exact filename; `clip.DS_Store` does not match. `Scenes/` has no junk files and appears as a `[NOOP]` leaf.
+- **Sibling alignment**: within each group of siblings, names of varying lengths are padded so that all status labels start at the same column (e.g., `.DS_Store` and `Extras` under `MovieA`; `chapter.bif` and `Scenes` under `Featurettes`).
 
 
 ## Notes
 
 - Please back up your media library (or test on a sample directory) before running cleanup scripts.
 - File extension matching is case-insensitive.
-- `add_ignore.py` decision logic:
+- `1.add_ignore.py` decision logic:
   1. Under `root`, each first-level folder is inspected.
   2. If that folder contains any `S<number>` directories:
      - each season dir (`S1`, `S2`, ...) is treated as a media base dir and the script scans its first-level child directories (`S1/*`) as creation targets;
@@ -446,9 +458,9 @@ Notes on the output above:
   3. If that folder contains no `S<number>` directories, it is treated as a movie base dir and the script scans its first-level child directories (`MovieName/*`) as creation targets.
   4. Any directory named `.actors` is always skipped (both “with seasons” and “without seasons” cases), so `.actors` is not treated as a creation target and no `.ignore`/`.tmmignore` files are created in it.
   5. Any directory named `.deletedByTMM` directly under `root` is also always skipped — no marker files are created in it.
-- `remove_ignore.py` uses the same first-level media traversal logic and only handles `.ignore` / `.tmmignore` marker files.
-- `clean_subfolders.py` walks recursively and skips any subtree that contains `.ignore`. At root level, the `.deletedByTMM` directory (if present) is deleted as a whole rather than recursed into.
-- `clean_junk.py` walks recursively across the entire subtree of each top-level entry. It matches `.bif` by file extension (case-insensitive) and `.DS_Store` / `Thumbs.db` by exact filename. It does not interact with `.ignore` files.
+- `3.remove_ignore.py` uses the same first-level media traversal logic and only handles `.ignore` / `.tmmignore` marker files.
+- `2.clean_subfolders.py` walks recursively and skips any subtree that contains `.ignore`. At root level, the `.deletedByTMM` directory (if present) is deleted as a whole rather than recursed into.
+- `4.clean_junk.py` walks recursively across the entire subtree of each top-level entry. It matches `.bif` by file extension (case-insensitive) and `.DS_Store` / `Thumbs.db` by exact filename. It does not interact with `.ignore` files.
 
 ## License
 

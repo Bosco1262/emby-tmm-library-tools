@@ -12,34 +12,34 @@ English documentation: [README.md](README.md)
    - 电影结构的一层子目录（`MovieName/*`）
    - 剧集结构的一层子目录（`ShowName/S1/*`）
    - 当存在季目录时，同级非季目录本身（`ShowName/Extra`、`ShowName/SPs` 等）
-2. 批量删除 `.ignore` 与 `.tmmignore`：
-   - 使用与 `add_ignore.py` 相同的一层媒体子目录扫描范围
-3. 对**不含** `.ignore` 的目录执行清理：
+2. 对**不含** `.ignore` 的目录执行清理：
    - 删除 `.png`、`.jpg` 文件（可选删除 `theme.mp3` 和 `.nfo`）
    - 删除 `.actors` 目录
    - 删除根目录下的 `.deletedByTMM` 目录（若存在）
+3. 批量删除 `.ignore` 与 `.tmmignore`：
+   - 使用与 `1.add_ignore.py` 相同的一层媒体子目录扫描范围
 4. 递归删除根目录下所有子文件夹中的垃圾文件：
    - `.bif` 文件（按扩展名匹配，不区分大小写）
    - `.DS_Store` 和 `Thumbs.db`（精确文件名匹配）
 
 ## 脚本说明
 
-- `add_ignore.py`  
+- `1.add_ignore.py`  
   扫描根目录下的一级媒体目录，支持两种结构：
   - `Root/MovieName/*`
   - `Root/ShowName/S1/*`（以及其它 `S<number>` 季目录），并在存在季目录时把同级非季目录（如 `Root/ShowName/Extra`）作为直接目标目录  
   采用“扫描 + 确认”流程。输入 `yes` 后创建缺失的 `.ignore` 和 `.tmmignore`。
 
-- `clean_subfolders.py`  
+- `2.clean_subfolders.py`  
   递归扫描根目录下所有子目录。采用“扫描 + 确认”流程。  
   启动时询问是否额外删除 `theme.mp3` 和/或 `.nfo` 文件。  
   对于不含 `.ignore` 的目录，删除图片文件（`.png`、`.jpg`）及所选可选文件类型，并删除 `.actors` 目录。根目录下的 `.deletedByTMM` 目录若存在也会整体计划删除。
 
-- `remove_ignore.py`  
-  采用与 `add_ignore.py` 相同的媒体遍历逻辑。采用“扫描 + 确认”流程。  
+- `3.remove_ignore.py`  
+  采用与 `1.add_ignore.py` 相同的媒体遍历逻辑。采用“扫描 + 确认”流程。  
   用于批量删除目标一层媒体子目录中的 `.ignore` / `.tmmignore`。
 
-- `clean_junk.py`  
+- `4.clean_junk.py`  
   递归扫描根目录下每个顶层条目的全部子目录。采用“扫描 + 确认”流程。  
   删除所有 `.bif` 文件（按扩展名，不区分大小写）、`.DS_Store` 和 `Thumbs.db`。  
   每个顶层条目先打印标题行再开始扫描，实时显示扫描进度。计划输出按顶层媒体条目分组，以树形结构显示。
@@ -50,10 +50,10 @@ English documentation: [README.md](README.md)
 
 ## 使用方法
 
-### 1）`add_ignore.py` — 向媒体子目录添加 `.ignore` 和 `.tmmignore`
+### 1）`1.add_ignore.py` — 向媒体子目录添加 `.ignore` 和 `.tmmignore`
 
 ```bash
-python add_ignore.py /path/to/your/library
+python 1.add_ignore.py /path/to/your/library
 ```
 
 脚本启动后先询问输出语言：
@@ -89,12 +89,12 @@ python add_ignore.py /path/to/your/library
 
 输入 `yes` 后在目标目录中创建缺失的 `.ignore` 和 `.tmmignore`。其他任何输入都会取消操作。
 
-### 2）`clean_subfolders.py` — 删除不含 `.ignore` 的目录中的图片文件和 `.actors` 目录
+### 2）`2.clean_subfolders.py` — 删除不含 `.ignore` 的目录中的图片文件和 `.actors` 目录
 
-> **⚠ 请先运行 `add_ignore.py` 标记需要保护的目录，否则受保护目录中的文件可能被误删。**
+> **⚠ 请先运行 `1.add_ignore.py` 标记需要保护的目录，否则受保护目录中的文件可能被误删。**
 
 ```bash
-python clean_subfolders.py /path/to/your/library
+python 2.clean_subfolders.py /path/to/your/library
 ```
 
 脚本启动后先询问输出语言：
@@ -149,10 +149,10 @@ python clean_subfolders.py /path/to/your/library
 
 输入 `yes` 后删除计划中的图片文件（`.png`、`.jpg`，以及你选择的可选类型）、`.actors` 目录，以及根目录下的 `.deletedByTMM` 目录（若存在）。其他任何输入都会取消操作。
 
-### 3）`remove_ignore.py` — 从媒体子目录删除 `.ignore` 和 `.tmmignore`
+### 3）`3.remove_ignore.py` — 从媒体子目录删除 `.ignore` 和 `.tmmignore`
 
 ```bash
-python remove_ignore.py /path/to/your/library
+python 3.remove_ignore.py /path/to/your/library
 ```
 
 脚本启动后先询问输出语言：
@@ -161,7 +161,7 @@ python remove_ignore.py /path/to/your/library
 请选择输出语言 / Please choose output language [zh/en] (默认 zh):
 ```
 
-脚本采用与 `add_ignore.py` 相同的媒体遍历逻辑，按媒体根目录分组以树形结构输出删除计划，每条目录条目包含以下标签之一：
+脚本采用与 `1.add_ignore.py` 相同的媒体遍历逻辑，按媒体根目录分组以树形结构输出删除计划，每条目录条目包含以下标签之一：
 
 - `[无需操作] 目录内不存在需要操作的文件` — 未发现标记文件
 - `[计划] 删除 .tmmignore 和 .ignore` — 将同时删除两个文件
@@ -185,10 +185,10 @@ python remove_ignore.py /path/to/your/library
 
 输入 `yes` 后删除标记文件。其他任何输入都会取消操作。
 
-### 4）`clean_junk.py` — 递归删除垃圾文件（`.bif`、`.DS_Store`、`Thumbs.db`）
+### 4）`4.clean_junk.py` — 递归删除垃圾文件（`.bif`、`.DS_Store`、`Thumbs.db`）
 
 ```bash
-python clean_junk.py /path/to/your/library
+python 4.clean_junk.py /path/to/your/library
 ```
 
 脚本启动后先询问输出语言：
@@ -252,7 +252,7 @@ python clean_junk.py /path/to/your/library
         └── ep0.jpg
 ```
 
-**第一步** — 运行 `python add_ignore.py /media` 并确认 `yes`。
+**第一步** — 运行 `python 1.add_ignore.py /media` 并确认 `yes`。
 
 脚本扫描一级媒体子目录并输出创建计划：
 
@@ -291,7 +291,7 @@ ShowA/
 - `MovieA` 内的 `.actors` 同样始终跳过。
 - `Specials` 是 `S1` 的同级非季目录，作为直接创建目标（标记文件直接写入 `ShowA/Specials`，而非其子目录）。
 
-**第二步** — 运行 `python clean_subfolders.py /media`，对 `theme.mp3` 输入 `y`，对 `.nfo` 输入 `N`，然后确认 `yes`。
+**第二步** — 运行 `python 2.clean_subfolders.py /media`，对 `theme.mp3` 输入 `y`，对 `.nfo` 输入 `N`，然后确认 `yes`。
 
 脚本递归遍历所有子目录。根目录下的 `.deletedByTMM` 计划整体删除；含 `.ignore` 的子树整体跳过；其余目录执行清理：
 
@@ -330,9 +330,9 @@ ShowA/
 
 `MovieA/Extras`、`ShowA/S1/Featurettes`、`ShowA/S1/SPs` 和 `ShowA/Specials` 内的文件不受影响，因为这些子树受 `.ignore` 保护。
 
-**第三步** — 运行 `python remove_ignore.py /media` 并确认 `yes`。
+**第三步** — 运行 `python 3.remove_ignore.py /media` 并确认 `yes`。
 
-脚本采用与 `add_ignore.py` 相同的遍历逻辑，规划并删除所有标记文件：
+脚本采用与 `1.add_ignore.py` 相同的遍历逻辑，规划并删除所有标记文件：
 
 ```text
 MovieA/
@@ -362,80 +362,91 @@ ShowA/
 [已删除] /media/ShowA/Specials/.ignore
 ```
 
-### `clean_junk.py` — 独立示例
+**第四步** — 运行 `python 4.clean_junk.py /media`。
 
-`clean_junk.py` 与 `.ignore` 工作流无关，可在任意时刻独立运行。它递归进入每个顶层条目的所有子目录，因此能覆盖任意层级深度。给定如下媒体库：
+`4.clean_junk.py` 与 `.ignore` 工作流无关，可在任意时刻独立运行。它递归进入每个顶层条目的所有子目录，覆盖任意层级深度。以下媒体库专为展示程序所有判断情况而设计：
 
 ```text
 /media
+├── Thumbs.db
+├── CleanMovie
+│   └── Extras
+│       └── video.mkv
 ├── MovieA
 │   ├── .DS_Store
-│   └── Bonus
-│       └── Behind the Scenes
-│           ├── Thumbs.db
-│           └── Interviews
-│               └── intro.BIF
+│   ├── Bonus
+│   │   ├── clip.bif
+│   │   └── Behind the Scenes
+│   │       └── intro.BIF
+│   └── Extras
+│       └── poster.jpg
 └── ShowB
-    └── S2
-        └── Extras
-            ├── chapter00.bif
-            ├── chapter01.bif
-            ├── Thumbs.db
+    └── S1
+        └── Featurettes
+            ├── chapter.bif
             └── Scenes
                 └── clip.DS_Store
 ```
 
-运行 `python clean_junk.py /media`：
-
 ```text
+/media
+└── Thumbs.db [计划] 删除 Thumbs.db
+
+/media
+└── CleanMovie [无需操作] 目录内不存在需要删除的垃圾文件
+
 /media
 └── MovieA
     ├── .DS_Store [计划] 删除 .DS_Store
-    └── Bonus
-        └── Behind the Scenes
-            ├── Thumbs.db [计划] 删除 Thumbs.db
-            └── Interviews
-                └── intro.BIF [计划] 删除 intro.BIF
+    ├── Bonus
+    │   ├── clip.bif [计划] 删除 clip.bif
+    │   └── Behind the Scenes
+    │       └── intro.BIF [计划] 删除 intro.BIF
+    └── Extras    [无需操作] 目录内不存在需要删除的垃圾文件
 
 /media
 └── ShowB
-    └── S2
-        └── Extras
-            ├── chapter00.bif [计划] 删除 chapter00.bif
-            ├── chapter01.bif [计划] 删除 chapter01.bif
-            ├── Thumbs.db     [计划] 删除 Thumbs.db
-            └── Scenes        [无需操作] 目录内不存在需要删除的垃圾文件
+    └── S1
+        └── Featurettes
+            ├── chapter.bif [计划] 删除 chapter.bif
+            └── Scenes      [无需操作] 目录内不存在需要删除的垃圾文件
 
 === 扫描汇总 ===
-扫描目录数: 8
-计划删除文件数: 6
-无垃圾文件的顶层条目数: 0
+扫描目录数: 10
+计划删除文件数: 5
+无垃圾文件的顶层条目数: 1
 
 确认删除吗？输入 yes 继续: yes
 
 正在删除文件...
+[已删除] /media/Thumbs.db
 [已删除] /media/MovieA/.DS_Store
-[已删除] /media/MovieA/Bonus/Behind the Scenes/Thumbs.db
-[已删除] /media/MovieA/Bonus/Behind the Scenes/Interviews/intro.BIF
-[已删除] /media/ShowB/S2/Extras/Thumbs.db
-[已删除] /media/ShowB/S2/Extras/chapter00.bif
-[已删除] /media/ShowB/S2/Extras/chapter01.bif
+[已删除] /media/MovieA/Bonus/clip.bif
+[已删除] /media/MovieA/Bonus/Behind the Scenes/intro.BIF
+[已删除] /media/ShowB/S1/Featurettes/chapter.bif
+
+完成。
+已删除: 5
+错误: 0
 ```
 
 关于上述输出的说明：
 
-- **标题行在扫描前先输出**：每个顶层条目的根目录路径与条目名行在扫描开始前即刻显示，大型媒体库也可实时看到扫描进度。
-- **每个垃圾文件占独一行**：`Extras/` 内有三个垃圾文件（`Thumbs.db`、`chapter00.bif`、`chapter01.bif`），每个单独占一行显示，确认后一并删除。
-- **`Scenes/` 以 `[无需操作]` 显示**：`Scenes/` 内只有 `clip.DS_Store` 文件，该文件不匹配任何垃圾模式（`.DS_Store` 按精确文件名匹配，`clip.DS_Store` 不一致）。因此 `Scenes/` 以无需操作叶子节点显示，目录本身不会被删除。
-- **`clip.DS_Store` 不会被删除**：脚本仅按精确文件名匹配 `.DS_Store`，`clip.DS_Store` 不受影响。
-- **元素对齐**：同一层兄弟节点中名称长短不一的组件会进行对齐，让所有状态标签起始列相同（见 `Extras/` 下 `Thumbs.db` 与 `Scenes` 的对齐）。
+- **根目录下的垃圾文件**（`Thumbs.db`）：直接位于根目录下（不隶属于任何顶层条目）的垃圾文件，以独立块优先显示，使用 `├──`/`└──` 分支和 `[计划]` 标签，出现在所有条目输出之前。
+- **无垃圾文件的条目**（`CleanMovie`）：若某条目的整棵子树中不存在垃圾文件，`[无需操作]` 标签直接追加在标题行末尾。标题行在扫描开始前即刻输出，标签在扫描结束后内联追加。
+- **垃圾文件直接位于条目根目录**（`MovieA/.DS_Store`）：`.DS_Store` 位于 `MovieA/` 本身之下。任意目录级别的垃圾文件始终作为子节点排在同级子目录之前输出。
+- **同时包含垃圾文件和子目录的目录**（`Bonus`）：`clip.bif`（垃圾文件）与 `Behind the Scenes`（子目录）同属一个父目录。垃圾文件优先列出，其后为子目录。`Bonus` 本身无标签，展开为子节点。
+- **深层嵌套的垃圾文件**（`Behind the Scenes/intro.BIF`）：`intro.BIF` 是其中唯一的文件；`Behind the Scenes` 以无标签中间节点的形式展开至其唯一的垃圾叶子节点。
+- **无垃圾的叶子目录**（`MovieA/Extras`）：`Extras/` 内只有 `poster.jpg`（非垃圾文件），且无子目录，因此以 `[无需操作]` 叶子节点显示。
+- **不匹配的文件名**（`Scenes/clip.DS_Store`）：`.DS_Store` 按精确文件名匹配，`clip.DS_Store` 不符合；`Scenes/` 内无垃圾文件，以 `[无需操作]` 叶子节点显示。
+- **兄弟节点对齐**：同一父目录下名称长短不一的兄弟节点会进行对齐，使所有状态标签起始列相同（如 `MovieA` 下的 `.DS_Store` 与 `Extras`，以及 `Featurettes` 下的 `chapter.bif` 与 `Scenes`）。
 
 
 ## 说明
 
 - 强烈建议先备份媒体库，或先在测试目录验证。
 - 文件后缀匹配不区分大小写。
-- `add_ignore.py` 的判定逻辑：
+- `1.add_ignore.py` 的判定逻辑：
   1. 在 `root` 下逐个检查一级目录。
   2. 若该目录下存在 `S<number>` 季目录：
      - 每个季目录（`S1`、`S2`...）作为媒体基目录，并扫描其一级子目录（`S1/*`）作为创建目标；
@@ -443,9 +454,9 @@ ShowA/
   3. 若不存在 `S<number>` 季目录，则按电影目录处理，扫描其一级子目录（`MovieName/*`）。
   4. 名为 `.actors` 的目录总是跳过，不会在其中创建 `.ignore` / `.tmmignore`。
   5. 根目录下名为 `.deletedByTMM` 的目录也始终跳过，不会在其中创建标记文件。
-- `remove_ignore.py` 使用相同的一层媒体遍历逻辑，只处理 `.ignore` / `.tmmignore` 标记文件。
-- `clean_subfolders.py` 为递归遍历；任意目录内如果检测到 `.ignore`，会跳过该目录整棵子树。根目录下的 `.deletedByTMM` 目录（若存在）会作为整体删除，不会递归进入其内部。
-- `clean_junk.py` 对每个顶层条目的全部子目录做递归遍历。按扩展名（不区分大小写）匹配 `.bif`，按精确文件名匹配 `.DS_Store` 和 `Thumbs.db`。不与 `.ignore` 文件交互。
+- `3.remove_ignore.py` 使用相同的一层媒体遍历逻辑，只处理 `.ignore` / `.tmmignore` 标记文件。
+- `2.clean_subfolders.py` 为递归遍历；任意目录内如果检测到 `.ignore`，会跳过该目录整棵子树。根目录下的 `.deletedByTMM` 目录（若存在）会作为整体删除，不会递归进入其内部。
+- `4.clean_junk.py` 对每个顶层条目的全部子目录做递归遍历。按扩展名（不区分大小写）匹配 `.bif`，按精确文件名匹配 `.DS_Store` 和 `Thumbs.db`。不与 `.ignore` 文件交互。
 
 ## 许可证
 

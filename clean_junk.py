@@ -160,8 +160,9 @@ def render_entry_lines(entry_node: dict) -> list:
             branch = "└──" if is_last else "├──"
             heads.append(f"{prefix}{branch} {child['name']}")
 
-        # 以同级最大显示宽度对齐 detail 标签
-        max_width = max(display_width(h) for h in heads)
+        # 以同级有内联标签的节点的最大显示宽度对齐（展开节点不参与列宽计算）
+        labeled_widths = [display_width(h) for h, child in zip(heads, children) if child["detail"]]
+        max_width = max(labeled_widths) if labeled_widths else 0
 
         for i, (child, head) in enumerate(zip(children, heads)):
             is_last = i == len(children) - 1
@@ -179,18 +180,15 @@ def render_entry_lines(entry_node: dict) -> list:
     return lines
 
 
-def flush_entry_plan(root_dir: str, entry_node: dict, messages: dict):
+def flush_entry_plan(root_dir: str, entry_node: dict, messages: dict, has_targets: bool):
     """打印单个顶层条目的计划展示块（先打印 root_dir 标题行，再展开条目树）"""
     print()
     entry_line = f"└── {entry_node['name']}"
-    is_noop = not entry_node["children"] and entry_node["detail"] is not None
-
-    if is_noop:
-        # 条目整体无垃圾文件：在条目行末追加 noop 标签
-        print(root_dir)
-        print(f"{entry_line} {entry_node['detail']}")
+    print(root_dir)
+    if not has_targets:
+        # 整个条目树内无垃圾文件：折叠为单行 noop（即使条目本身有子目录）
+        print(f"{entry_line} {messages['noop_dir']}")
     else:
-        print(root_dir)
         print(entry_line)
         for line in render_entry_lines(entry_node):
             print(line)
@@ -210,16 +208,31 @@ def collect_deletion_targets(root_dir: str, messages: dict) -> tuple:
     noop_count = 0
 
     try:
-        top_entries = sorted(
-            (e for e in os.scandir(root_dir) if e.is_dir()),
-            key=lambda e: e.name.lower(),
-        )
+        root_scan = sorted(os.scandir(root_dir), key=lambda e: e.name.lower())
     except OSError:
         return [], 0, 0
 
+    # 根目录本身直接包含的垃圾文件（不隶属于任何子条目）
+    root_junk = [e for e in root_scan if e.is_file() and is_junk_file(e.name)]
+    if root_junk:
+        print()
+        print(root_dir)
+        heads = []
+        for i, e in enumerate(root_junk):
+            branch = "└──" if i == len(root_junk) - 1 else "├──"
+            heads.append(f"{branch} {e.name}")
+        max_w = max(display_width(h) for h in heads)
+        for e, head in zip(root_junk, heads):
+            label = messages["plan_delete"].format(filename=e.name)
+            print(f"{pad_to_width(head, max_w)} {label}")
+        targets.extend(e.path for e in root_junk)
+
+    top_entries = [e for e in root_scan if e.is_dir()]
+
     if not top_entries:
-        print(f"\n{root_dir} {messages['noop_dir']}")
-        return [], 0, 0
+        if not root_junk:
+            print(f"\n{root_dir} {messages['noop_dir']}")
+        return targets, 0, 0
 
     for entry in top_entries:
         entry_node, entry_targets, entry_dir_count = build_entry_tree(entry.path, messages)
@@ -228,7 +241,7 @@ def collect_deletion_targets(root_dir: str, messages: dict) -> tuple:
         if not entry_targets:
             noop_count += 1
 
-        flush_entry_plan(root_dir, entry_node, messages)
+        flush_entry_plan(root_dir, entry_node, messages, bool(entry_targets))
         targets.extend(entry_targets)
 
     return targets, scanned_dirs, noop_count

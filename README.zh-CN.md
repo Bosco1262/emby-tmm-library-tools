@@ -17,6 +17,9 @@ English documentation: [README.md](README.md)
 3. 对**不含** `.ignore` 的目录执行清理：
    - 删除 `.png`、`.jpg` 文件（可选删除 `.nfo`）
    - 删除 `.actors` 目录
+4. 递归删除根目录下所有子文件夹中的垃圾文件：
+   - `.bif` 文件（按扩展名匹配，不区分大小写）
+   - `.DS_Store` 和 `Thumbs.db`（精确文件名匹配）
 
 ## 脚本说明
 
@@ -33,6 +36,11 @@ English documentation: [README.md](README.md)
 - `remove_ignore.py`  
   采用与 `add_ignore.py` 相同的媒体遍历逻辑。采用“扫描 + 确认”流程。  
   用于批量删除目标一层媒体子目录中的 `.ignore` / `.tmmignore`。
+
+- `clean_junk.py`  
+  递归扫描根目录下每个顶层条目的全部子目录。采用“扫描 + 确认”流程。  
+  删除所有 `.bif` 文件（按扩展名，不区分大小写）、`.DS_Store` 和 `Thumbs.db`。  
+  计划输出按顶层媒体条目分组，以树形结构显示。
 
 ## 运行要求
 
@@ -161,6 +169,46 @@ python remove_ignore.py /path/to/your/library
 
 输入 `yes` 后删除标记文件。其他任何输入都会取消操作。
 
+### 4）`clean_junk.py` — 递归删除垃圾文件（`.bif`、`.DS_Store`、`Thumbs.db`）
+
+```bash
+python clean_junk.py /path/to/your/library
+```
+
+脚本启动后先询问输出语言：
+
+```text
+请选择输出语言 / Please choose output language [zh/en] (默认 zh):
+```
+
+脚本递归遍历每个顶层条目下的全部子目录，按顶层媒体条目分组，以树形结构输出删除计划。顶层条目目录本身中发现的垃圾文件显示在标题行，子目录中发现的垃圾文件则以树形展开。每条条目包含以下标签之一：
+
+- `[无需操作] 目录内不存在需要删除的垃圾文件` — 该顶层条目内未发现任何垃圾文件
+- `MediaDir/ [计划] 删除 <files>` — 垃圾文件位于顶层条目目录本身
+- `└── subdir/ [计划] 删除 <files>` — 垃圾文件位于子目录
+
+扫描结束后输出汇总：
+
+```text
+=== 扫描汇总 ===
+扫描目录数: N
+计划删除文件数: N
+无垃圾文件的顶层条目数: N
+```
+
+若无需删除任何文件则直接退出。否则询问确认：
+
+```text
+确认删除吗？输入 yes 继续:
+```
+
+输入 `yes` 后删除所有计划中的垃圾文件。其他任何输入都会取消操作。
+
+**匹配规则：**
+- `.bif` — 按文件扩展名匹配，**不区分大小写**（如 `chapter00.bif`、`intro.BIF`）
+- `.DS_Store` — 精确文件名匹配
+- `Thumbs.db` — 精确文件名匹配
+
 ## 示例（推荐顺序）
 
 给定媒体库：
@@ -259,6 +307,43 @@ ShowA/
 [已删除] /media/ShowA/S1/SPs/.ignore
 ```
 
+### `clean_junk.py` — 独立示例
+
+`clean_junk.py` 与 `.ignore` 工作流无关，可在任意时刻独立运行。给定一个含有垃圾文件的媒体库：
+
+```text
+/media
+├── MovieA
+│   ├── Thumbs.db
+│   └── Extras
+│       └── chapter00.bif
+└── ShowA
+    └── S1
+        └── ep1.bif
+```
+
+运行 `python clean_junk.py /media`：
+
+```text
+MovieA/ [计划] 删除 Thumbs.db
+└── Extras/ [计划] 删除 chapter00.bif
+
+ShowA/
+└── S1/ [计划] 删除 ep1.bif
+
+=== 扫描汇总 ===
+扫描目录数: 4
+计划删除文件数: 3
+无垃圾文件的顶层条目数: 0
+
+确认删除吗？输入 yes 继续: yes
+
+正在删除文件...
+[已删除] /media/MovieA/Thumbs.db
+[已删除] /media/MovieA/Extras/chapter00.bif
+[已删除] /media/ShowA/S1/ep1.bif
+```
+
 ## 说明
 
 - 强烈建议先备份媒体库，或先在测试目录验证。
@@ -272,6 +357,7 @@ ShowA/
   4. 名为 `.actors` 的目录总是跳过，不会在其中创建 `.ignore` / `.tmmignore`。
 - `remove_ignore.py` 使用相同的一层媒体遍历逻辑，只处理 `.ignore` / `.tmmignore` 标记文件。
 - `clean_subfolders.py` 为递归遍历；任意目录内如果检测到 `.ignore`，会跳过该目录整棵子树。
+- `clean_junk.py` 对每个顶层条目的全部子目录做递归遍历。按扩展名（不区分大小写）匹配 `.bif`，按精确文件名匹配 `.DS_Store` 和 `Thumbs.db`。不与 `.ignore` 文件交互。
 
 ## 许可证
 

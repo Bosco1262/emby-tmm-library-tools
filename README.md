@@ -16,6 +16,9 @@ This repository currently includes scripts to:
 3. In subfolders **without** `.ignore`:
    - Delete `.png`, `.jpg` files (and optionally `.nfo` files)
    - Delete `.actors` directory if it exists
+4. Recursively delete junk files across all subfolders under the root:
+   - `.bif` files (matched by extension, case-insensitive)
+   - `.DS_Store` and `Thumbs.db` (matched by exact name)
 
 ## Scripts
 
@@ -36,6 +39,12 @@ This repository currently includes scripts to:
   Uses the same media traversal logic as `add_ignore.py`.  
   Uses a scan + confirm workflow.  
   It plans and deletes existing `.ignore`/`.tmmignore` in target first-level media subfolders.
+
+- `clean_junk.py`  
+  Recursively scans all directories under each top-level entry in the root.  
+  Uses a scan + confirm workflow.  
+  Deletes `.bif` files (by extension, case-insensitive), `.DS_Store`, and `Thumbs.db` wherever they are found.  
+  Plan output is grouped per top-level media entry and displayed as a tree.
 
 ## Requirements
 
@@ -164,6 +173,46 @@ Confirm deletion? Type yes to continue:
 
 Type `yes` to delete the marker files. Any other input cancels without making changes.
 
+### 4) `clean_junk.py` — Recursively delete junk files (`.bif`, `.DS_Store`, `Thumbs.db`)
+
+```bash
+python clean_junk.py /path/to/your/library
+```
+
+The script first asks for output language:
+
+```text
+请选择输出语言 / Please choose output language [zh/en] (default zh):
+```
+
+It then recursively walks every directory inside each top-level entry and prints a planned deletion tree grouped by media root. Junk found directly inside a top-level entry directory is shown on the header line; junk found in deeper subdirectories is shown as a tree. Each entry is labeled with one of:
+
+- `[NOOP] No junk files found in this entry` — no junk files found anywhere in this entry
+- `MediaDir/ [PLAN] Delete <files>` — junk found directly in the top-level entry dir
+- `└── subdir/ [PLAN] Delete <files>` — junk found in a subdirectory
+
+After scanning, a summary is printed:
+
+```text
+=== Scan Summary ===
+Scanned directories: N
+Planned file deletions: N
+Top-level entries with no junk: N
+```
+
+If there is nothing to delete, the script exits. Otherwise it asks for confirmation:
+
+```text
+Confirm deletion? Type yes to continue:
+```
+
+Type `yes` to delete all planned junk files. Any other input cancels without making changes.
+
+**Matching rules:**
+- `.bif` — matched by file extension, **case-insensitive** (e.g. `chapter00.bif`, `intro.BIF`)
+- `.DS_Store` — matched by exact filename
+- `Thumbs.db` — matched by exact filename
+
 ## Example (recommended order)
 
 Given a library like:
@@ -262,6 +311,43 @@ Deleting files...
 [DELETED] /media/ShowA/S1/SPs/.ignore
 ```
 
+### `clean_junk.py` — standalone example
+
+`clean_junk.py` is independent of the `.ignore` workflow and can be run at any time. Given a library that contains junk files:
+
+```text
+/media
+├── MovieA
+│   ├── Thumbs.db
+│   └── Extras
+│       └── chapter00.bif
+└── ShowA
+    └── S1
+        └── ep1.bif
+```
+
+Run `python clean_junk.py /media`:
+
+```text
+MovieA/ [PLAN] Delete Thumbs.db
+└── Extras/ [PLAN] Delete chapter00.bif
+
+ShowA/
+└── S1/ [PLAN] Delete ep1.bif
+
+=== Scan Summary ===
+Scanned directories: 4
+Planned file deletions: 3
+Top-level entries with no junk: 0
+
+Confirm deletion? Type yes to continue: yes
+
+Deleting files...
+[DELETED] /media/MovieA/Thumbs.db
+[DELETED] /media/MovieA/Extras/chapter00.bif
+[DELETED] /media/ShowA/S1/ep1.bif
+```
+
 ## Notes
 
 - Please back up your media library (or test on a sample directory) before running cleanup scripts.
@@ -275,6 +361,7 @@ Deleting files...
    4. Any directory named `.actors` is always skipped (both “with seasons” and “without seasons” cases), so `.actors` is not treated as a creation target and no `.ignore`/`.tmmignore` files are created in it.
 - `remove_ignore.py` uses the same first-level media traversal logic and only handles `.ignore` / `.tmmignore` marker files.
 - `clean_subfolders.py` walks recursively and skips any subtree that contains `.ignore`.
+- `clean_junk.py` walks recursively across the entire subtree of each top-level entry. It matches `.bif` by file extension (case-insensitive) and `.DS_Store` / `Thumbs.db` by exact filename. It does not interact with `.ignore` files.
 
 ## License
 

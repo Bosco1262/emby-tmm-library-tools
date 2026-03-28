@@ -12,7 +12,7 @@ MESSAGES = {
         "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (默认 zh): ",
         "plan_header": "\n{media_label}",
         "plan_header_noop": "\n{media_label} {detail}",
-        "noop_dir": "[无需操作] 目录内不存在需要操作的子目录。",
+        "noop_dir": "[无需操作] 目录内不存在需要操作的子目录",
         "skip_actors": "[跳过] 跳过 .actors 目录",
         "skip_deleted_by_tmm": "[跳过] 跳过 .deletedByTMM 目录",
         "both_exists": "[跳过] .ignore/.tmmignore 均已存在",

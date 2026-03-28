@@ -366,7 +366,7 @@ Deleting files...
 [DELETED] /media/ShowA/Specials/.ignore
 ```
 
-**Step 4** — Run `python 4.clean_junk.py /media`.
+## Example: `4.clean_junk.py`
 
 `4.clean_junk.py` is independent of the `.ignore` workflow and can be run at any time. It recurses into all subdirectories of each top-level entry, covering any nesting depth. The following library is designed to show every possible output case:
 
@@ -458,8 +458,8 @@ Notes on the output above:
   3. If that folder contains no `S<number>` directories, it is treated as a movie base dir and the script scans its first-level child directories (`MovieName/*`) as creation targets.
   4. Any directory named `.actors` is always skipped (both “with seasons” and “without seasons” cases), so `.actors` is not treated as a creation target and no `.ignore`/`.tmmignore` files are created in it.
   5. Any directory named `.deletedByTMM` directly under `root` is also always skipped — no marker files are created in it.
-- `3.remove_ignore.py` uses the same first-level media traversal logic and only handles `.ignore` / `.tmmignore` marker files.
 - `2.clean_subfolders.py` walks recursively and skips any subtree that contains `.ignore`. At root level, the `.deletedByTMM` directory (if present) is deleted as a whole rather than recursed into.
+- `3.remove_ignore.py` uses the same first-level media traversal logic and only handles `.ignore` / `.tmmignore` marker files.
 - `4.clean_junk.py` walks recursively across the entire subtree of each top-level entry. It matches `.bif` by file extension (case-insensitive) and `.DS_Store` / `Thumbs.db` by exact filename. It does not interact with `.ignore` files.
 
 ## License

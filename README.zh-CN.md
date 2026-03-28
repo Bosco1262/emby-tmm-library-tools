@@ -362,7 +362,7 @@ ShowA/
 [已删除] /media/ShowA/Specials/.ignore
 ```
 
-**第四步** — 运行 `python 4.clean_junk.py /media`。
+## 示例：`4.clean_junk.py`
 
 `4.clean_junk.py` 与 `.ignore` 工作流无关，可在任意时刻独立运行。它递归进入每个顶层条目的所有子目录，覆盖任意层级深度。以下媒体库专为展示程序所有判断情况而设计：
 
@@ -454,8 +454,8 @@ ShowA/
   3. 若不存在 `S<number>` 季目录，则按电影目录处理，扫描其一级子目录（`MovieName/*`）。
   4. 名为 `.actors` 的目录总是跳过，不会在其中创建 `.ignore` / `.tmmignore`。
   5. 根目录下名为 `.deletedByTMM` 的目录也始终跳过，不会在其中创建标记文件。
-- `3.remove_ignore.py` 使用相同的一层媒体遍历逻辑，只处理 `.ignore` / `.tmmignore` 标记文件。
 - `2.clean_subfolders.py` 为递归遍历；任意目录内如果检测到 `.ignore`，会跳过该目录整棵子树。根目录下的 `.deletedByTMM` 目录（若存在）会作为整体删除，不会递归进入其内部。
+- `3.remove_ignore.py` 使用相同的一层媒体遍历逻辑，只处理 `.ignore` / `.tmmignore` 标记文件。
 - `4.clean_junk.py` 对每个顶层条目的全部子目录做递归遍历。按扩展名（不区分大小写）匹配 `.bif`，按精确文件名匹配 `.DS_Store` 和 `Thumbs.db`。不与 `.ignore` 文件交互。
 
 ## 许可证

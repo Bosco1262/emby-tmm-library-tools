@@ -97,9 +97,7 @@ def flush_media_plan(media_label: str, plan_rows, messages):
         return text + (" " * max(0, target_width - display_width(text)))
 
     if not plan_rows:
-        media_line = f"{media_label}"
-        aligned_media = pad_to_width(media_line, MEDIA_LABEL_WIDTH)
-        print(messages["plan_header_noop"].format(media_label=aligned_media, detail=messages["noop_dir"]))
+        print(messages["plan_header_noop"].format(media_label=media_label, detail=messages["noop_dir"]))
         return
     print(messages["plan_header"].format(media_label=media_label))
 

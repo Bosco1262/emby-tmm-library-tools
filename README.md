@@ -366,7 +366,7 @@ Deleting files...
 
 ### `clean_junk.py` — standalone example
 
-`clean_junk.py` is independent of the `.ignore` workflow and can be run at any time. It recurses into all subdirectories of each top-level entry, so it covers any nesting depth. Given a library with junk files scattered across four levels of subdirectories:
+`clean_junk.py` is independent of the `.ignore` workflow and can be run at any time. It recurses into all subdirectories of each top-level entry, so it covers any nesting depth. Given a library like:
 
 ```text
 /media
@@ -381,8 +381,10 @@ Deleting files...
     └── S2
         └── Extras
             ├── chapter00.bif
+            ├── chapter01.bif
+            ├── Thumbs.db
             └── Scenes
-                └── .DS_Store
+                └── clip.DS_Store
 ```
 
 Run `python clean_junk.py /media`:
@@ -395,12 +397,11 @@ MovieA/ [PLAN] Delete .DS_Store
 
 ShowB/
 └── S2/
-    └── Extras/     [PLAN] Delete chapter00.bif
-        └── Scenes/ [PLAN] Delete .DS_Store
+    └── Extras/ [PLAN] Delete Thumbs.db, chapter00.bif, chapter01.bif
 
 === Scan Summary ===
 Scanned directories: 8
-Planned file deletions: 5
+Planned file deletions: 6
 Top-level entries with no junk: 0
 
 Confirm deletion? Type yes to continue: yes
@@ -409,9 +410,15 @@ Deleting files...
 [DELETED] /media/MovieA/.DS_Store
 [DELETED] /media/MovieA/Bonus/Behind the Scenes/Thumbs.db
 [DELETED] /media/MovieA/Bonus/Behind the Scenes/Interviews/intro.BIF
+[DELETED] /media/ShowB/S2/Extras/Thumbs.db
 [DELETED] /media/ShowB/S2/Extras/chapter00.bif
-[DELETED] /media/ShowB/S2/Extras/Scenes/.DS_Store
+[DELETED] /media/ShowB/S2/Extras/chapter01.bif
 ```
+
+Notes on the output above:
+
+- **Multiple files in one directory**: `Extras/` has three junk files (`Thumbs.db`, `chapter00.bif`, `chapter01.bif`); they are all listed on one `[PLAN]` line and deleted together.
+- **`clip.DS_Store` is not deleted**: the script matches `.DS_Store` by exact filename only. A file named `clip.DS_Store` has a different name and is left untouched. `Scenes/` does not appear in the plan at all because it contains no matching junk files.
 
 
 ## Notes

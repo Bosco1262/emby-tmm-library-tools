@@ -362,7 +362,7 @@ ShowA/
 
 ### `clean_junk.py` — 独立示例
 
-`clean_junk.py` 与 `.ignore` 工作流无关，可在任意时刻独立运行。它递归进入每个顶层条目的所有子目录，因此能覆盖任意层级深度。给定一个垃圾文件散布在四层子目录中的媒体库：
+`clean_junk.py` 与 `.ignore` 工作流无关，可在任意时刻独立运行。它递归进入每个顶层条目的所有子目录，因此能覆盖任意层级深度。给定如下媒体库：
 
 ```text
 /media
@@ -377,8 +377,10 @@ ShowA/
     └── S2
         └── Extras
             ├── chapter00.bif
+            ├── chapter01.bif
+            ├── Thumbs.db
             └── Scenes
-                └── .DS_Store
+                └── clip.DS_Store
 ```
 
 运行 `python clean_junk.py /media`：
@@ -391,12 +393,11 @@ MovieA/ [计划] 删除 .DS_Store
 
 ShowB/
 └── S2/
-    └── Extras/     [计划] 删除 chapter00.bif
-        └── Scenes/ [计划] 删除 .DS_Store
+    └── Extras/ [计划] 删除 Thumbs.db, chapter00.bif, chapter01.bif
 
 === 扫描汇总 ===
 扫描目录数: 8
-计划删除文件数: 5
+计划删除文件数: 6
 无垃圾文件的顶层条目数: 0
 
 确认删除吗？输入 yes 继续: yes
@@ -405,9 +406,15 @@ ShowB/
 [已删除] /media/MovieA/.DS_Store
 [已删除] /media/MovieA/Bonus/Behind the Scenes/Thumbs.db
 [已删除] /media/MovieA/Bonus/Behind the Scenes/Interviews/intro.BIF
+[已删除] /media/ShowB/S2/Extras/Thumbs.db
 [已删除] /media/ShowB/S2/Extras/chapter00.bif
-[已删除] /media/ShowB/S2/Extras/Scenes/.DS_Store
+[已删除] /media/ShowB/S2/Extras/chapter01.bif
 ```
+
+关于上述输出的说明：
+
+- **同一目录下存在多个待删除文件**：`Extras/` 内有三个垃圾文件（`Thumbs.db`、`chapter00.bif`、`chapter01.bif`），它们在 `[计划]` 行中合并列出并一并删除。
+- **`clip.DS_Store` 不会被删除**：脚本仅按精确文件名匹配 `.DS_Store`，名为 `clip.DS_Store` 的文件名称不同，因此不受影响。`Scenes/` 目录因无匹配垃圾文件而不出现在计划中。
 
 
 ## 说明

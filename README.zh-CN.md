@@ -378,7 +378,7 @@ ShowA/
         └── Extras
             ├── chapter00.bif
             └── Scenes
-                └── clip.DS_Store
+                └── .DS_Store
 ```
 
 运行 `python clean_junk.py /media`：
@@ -391,8 +391,8 @@ MovieA/ [计划] 删除 .DS_Store
 
 ShowB/
 └── S2/
-    └── Extras/  [计划] 删除 chapter00.bif
-        └── Scenes/ [计划] 删除 clip.DS_Store
+    └── Extras/     [计划] 删除 chapter00.bif
+        └── Scenes/ [计划] 删除 .DS_Store
 
 === 扫描汇总 ===
 扫描目录数: 8
@@ -406,7 +406,7 @@ ShowB/
 [已删除] /media/MovieA/Bonus/Behind the Scenes/Thumbs.db
 [已删除] /media/MovieA/Bonus/Behind the Scenes/Interviews/intro.BIF
 [已删除] /media/ShowB/S2/Extras/chapter00.bif
-[已删除] /media/ShowB/S2/Extras/Scenes/clip.DS_Store
+[已删除] /media/ShowB/S2/Extras/Scenes/.DS_Store
 ```
 
 

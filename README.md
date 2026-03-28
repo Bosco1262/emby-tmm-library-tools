@@ -382,7 +382,7 @@ Deleting files...
         └── Extras
             ├── chapter00.bif
             └── Scenes
-                └── clip.DS_Store
+                └── .DS_Store
 ```
 
 Run `python clean_junk.py /media`:
@@ -395,8 +395,8 @@ MovieA/ [PLAN] Delete .DS_Store
 
 ShowB/
 └── S2/
-    └── Extras/  [PLAN] Delete chapter00.bif
-        └── Scenes/ [PLAN] Delete clip.DS_Store
+    └── Extras/     [PLAN] Delete chapter00.bif
+        └── Scenes/ [PLAN] Delete .DS_Store
 
 === Scan Summary ===
 Scanned directories: 8
@@ -410,7 +410,7 @@ Deleting files...
 [DELETED] /media/MovieA/Bonus/Behind the Scenes/Thumbs.db
 [DELETED] /media/MovieA/Bonus/Behind the Scenes/Interviews/intro.BIF
 [DELETED] /media/ShowB/S2/Extras/chapter00.bif
-[DELETED] /media/ShowB/S2/Extras/Scenes/clip.DS_Store
+[DELETED] /media/ShowB/S2/Extras/Scenes/.DS_Store
 ```
 
 

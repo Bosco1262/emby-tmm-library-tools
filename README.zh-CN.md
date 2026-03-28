@@ -362,7 +362,7 @@ ShowA/
 [已删除] /media/ShowA/Specials/.ignore
 ```
 
-**第四步** — 运行 `python 4.clean_junk.py /media`。
+## 示例：`4.clean_junk.py`
 
 `4.clean_junk.py` 与 `.ignore` 工作流无关，可在任意时刻独立运行。它递归进入每个顶层条目的所有子目录，覆盖任意层级深度。以下媒体库专为展示程序所有判断情况而设计：
 

@@ -366,7 +366,7 @@ Deleting files...
 [DELETED] /media/ShowA/Specials/.ignore
 ```
 
-**Step 4** — Run `python 4.clean_junk.py /media`.
+## Example: `4.clean_junk.py`
 
 `4.clean_junk.py` is independent of the `.ignore` workflow and can be run at any time. It recurses into all subdirectories of each top-level entry, covering any nesting depth. The following library is designed to show every possible output case:
 

@@ -1,6 +1,5 @@
 import argparse
 import os
-from pathlib import PurePosixPath
 import unicodedata
 
 
@@ -18,13 +17,24 @@ def is_junk_file(filename: str) -> bool:
     return ext.lower() in JUNK_SUFFIXES
 
 
+def display_width(text: str) -> int:
+    """计算字符串的显示宽度（宽字符按 2 计算，其余按 1 计算）"""
+    width = 0
+    for ch in text:
+        width += 2 if unicodedata.east_asian_width(ch) in ("F", "W") else 1
+    return width
+
+
+def pad_to_width(text: str, target_width: int) -> str:
+    """在字符串末尾填充空格以达到目标显示宽度"""
+    return text + (" " * max(0, target_width - display_width(text)))
+
+
 MESSAGES = {
     "zh": {
         "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (默认 zh): ",
-        "plan_header": "\n{media_label}",
-        "plan_header_noop": "\n{media_label} {detail}",
         "noop_dir": "[无需操作] 目录内不存在需要删除的垃圾文件",
-        "plan_delete": "[计划] 删除 {files}",
+        "plan_delete": "[计划] 删除 {filename}",
         "scan_summary": "\n=== 扫描汇总 ===",
         "scanned_dirs": "扫描目录数: {count}",
         "planned_deletions": "计划删除文件数: {count}",
@@ -41,10 +51,8 @@ MESSAGES = {
     },
     "en": {
         "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (default zh): ",
-        "plan_header": "\n{media_label}",
-        "plan_header_noop": "\n{media_label} {detail}",
-        "noop_dir": "[NOOP] No junk files found in this entry",
-        "plan_delete": "[PLAN] Delete {files}",
+        "noop_dir": "[NOOP] No junk files found in this directory",
+        "plan_delete": "[PLAN] Delete {filename}",
         "scan_summary": "\n=== Scan Summary ===",
         "scanned_dirs": "Scanned directories: {count}",
         "planned_deletions": "Planned file deletions: {count}",
@@ -67,99 +75,161 @@ def choose_language() -> str:
     return "en" if answer == "en" else "zh"
 
 
-def flush_media_plan(media_label: str, plan_rows, messages, root_detail=None):
-    def display_width(text: str) -> int:
-        width = 0
-        for ch in text:
-            # 宽字符(F/W)按2个显示位计算，其他字符按1个显示位计算，保证中英文混排时对齐稳定
-            width += 2 if unicodedata.east_asian_width(ch) in ("F", "W") else 1
-        return width
+def build_entry_tree(entry_path: str, messages: dict) -> tuple:
+    """
+    递归构建顶层条目的完整目录树（包含所有子目录和垃圾文件节点）。
 
-    def pad_to_width(text: str, target_width: int) -> str:
-        return text + (" " * max(0, target_width - display_width(text)))
+    每个节点结构：
+        {'name': str, 'is_dir': bool, 'children': list, 'detail': str | None}
 
-    if not plan_rows:
-        # 无子目录计划行：显示根目录垃圾文件信息或无需操作提示
-        detail = root_detail if root_detail is not None else messages["noop_dir"]
-        print(messages["plan_header_noop"].format(media_label=media_label, detail=detail))
-        return
-    # 有子目录计划行：若根目录本身也有垃圾文件，将其显示在标题行同侧
-    if root_detail is not None:
-        print(messages["plan_header_noop"].format(media_label=media_label, detail=root_detail))
-    else:
-        print(messages["plan_header"].format(media_label=media_label))
+    - 垃圾文件作为叶子节点，detail 为 plan_delete 标签。
+    - 无垃圾文件且无子目录的目录节点，detail 为 noop_dir 标签。
+    - 其余目录节点 detail 为 None，由 children 展开。
 
-    root = {"children": {}}
+    返回 (root_node, targets, dir_count)：
+        root_node  — 条目根节点
+        targets    — 需要删除的文件绝对路径列表
+        dir_count  — 扫描的目录总数
+    """
+    targets = []
+    dir_count = [0]
 
-    for rel_path, detail in plan_rows:
-        parts = list(PurePosixPath(rel_path).parts)
-        node = root
-        for part in parts:
-            children = node["children"]
-            if part not in children:
-                children[part] = {"children": {}, "detail": None}
-            node = children[part]
-        node["detail"] = detail
+    def build_node(dir_path: str) -> dict:
+        dir_count[0] += 1
+        node = {
+            "name": os.path.basename(dir_path),
+            "is_dir": True,
+            "children": [],
+            "detail": None,
+        }
+        try:
+            raw_entries = sorted(os.scandir(dir_path), key=lambda e: e.name.lower())
+        except OSError:
+            node["detail"] = messages["noop_dir"]
+            return node
 
+        junk_files = [e for e in raw_entries if e.is_file() and is_junk_file(e.name)]
+        subdirs = [e for e in raw_entries if e.is_dir()]
+
+        if not junk_files and not subdirs:
+            # 叶子目录：无可处理垃圾文件，且无子目录
+            node["detail"] = messages["noop_dir"]
+            return node
+
+        # 垃圾文件节点（文件名升序）排在同级子目录之前
+        for e in junk_files:
+            targets.append(e.path)
+            node["children"].append(
+                {
+                    "name": e.name,
+                    "is_dir": False,
+                    "children": [],
+                    "detail": messages["plan_delete"].format(filename=e.name),
+                }
+            )
+
+        # 子目录节点递归构建（目录名升序）
+        for e in subdirs:
+            node["children"].append(build_node(e.path))
+
+        return node
+
+    root_node = build_node(entry_path)
+    return root_node, targets, dir_count[0]
+
+
+def render_entry_lines(entry_node: dict) -> list:
+    """
+    将条目节点的子树渲染为树形行列表。
+
+    同一父目录下的兄弟节点（文件与子目录混合）按显示宽度对齐，
+    使各自的状态标签（detail）起始列保持一致。
+    条目本身以 └── 分支显示，故其子节点从 4 空格缩进开始。
+    """
     lines = []
 
-    def collect_lines(node, prefix=""):
-        children = list(node["children"].items())
-        for index, (name, child) in enumerate(children):
-            is_last = index == len(children) - 1
+    def collect(node, prefix):
+        children = node["children"]
+        if not children:
+            return
+
+        # 预计算同级所有子节点的行首文字
+        heads = []
+        for i, child in enumerate(children):
+            is_last = i == len(children) - 1
             branch = "└──" if is_last else "├──"
-            child_prefix = "    " if is_last else "│   "
-            line_head = f"{prefix}{branch} {name}/"
-            lines.append((line_head, child["detail"]))
-            if child["children"]:
-                collect_lines(child, prefix + child_prefix)
+            heads.append(f"{prefix}{branch} {child['name']}")
 
-    collect_lines(root)
-    max_head_width = max((display_width(line_head) for line_head, _ in lines), default=0)
+        # 以同级最大显示宽度对齐 detail 标签
+        max_width = max(display_width(h) for h in heads)
 
-    for line_head, detail in lines:
-        if detail:
-            aligned_head = pad_to_width(line_head, max_head_width)
-            print(f"{aligned_head} {detail}")
-        else:
-            print(line_head)
+        for i, (child, head) in enumerate(zip(children, heads)):
+            is_last = i == len(children) - 1
+            child_prefix = prefix + ("    " if is_last else "│   ")
+
+            if child["detail"]:
+                lines.append(f"{pad_to_width(head, max_width)} {child['detail']}")
+            else:
+                lines.append(head)
+
+            collect(child, child_prefix)
+
+    # 条目始终以 └── 显示（每个条目独占一个块），子节点缩进 4 个空格
+    collect(entry_node, "    ")
+    return lines
 
 
-def collect_deletion_targets(root_dir: str, messages):
+def flush_entry_plan(root_dir: str, entry_node: dict, messages: dict):
+    """打印单个顶层条目的计划展示块（先打印 root_dir 标题行，再展开条目树）"""
+    print()
+    entry_line = f"└── {entry_node['name']}"
+    is_noop = not entry_node["children"] and entry_node["detail"] is not None
+
+    if is_noop:
+        # 条目整体无垃圾文件：在条目行末追加 noop 标签
+        print(root_dir)
+        print(f"{entry_line} {entry_node['detail']}")
+    else:
+        print(root_dir)
+        print(entry_line)
+        for line in render_entry_lines(entry_node):
+            print(line)
+
+
+def collect_deletion_targets(root_dir: str, messages: dict) -> tuple:
+    """
+    扫描根目录下的所有顶层条目，构建并打印各条目的完整树形计划。
+
+    返回 (targets, scanned_dirs, noop_count)：
+        targets      — 全部待删除文件的绝对路径列表
+        scanned_dirs — 扫描的目录总数（含各条目子目录）
+        noop_count   — 无垃圾文件的顶层条目数
+    """
     targets = []
     scanned_dirs = 0
     noop_count = 0
 
-    # 遍历根目录下的每个直接子条目（顶层媒体文件夹）
-    for entry in sorted(os.scandir(root_dir), key=lambda e: e.name.lower()):
-        if not entry.is_dir():
-            continue
+    try:
+        top_entries = sorted(
+            (e for e in os.scandir(root_dir) if e.is_dir()),
+            key=lambda e: e.name.lower(),
+        )
+    except OSError:
+        return [], 0, 0
 
-        media_root = entry.path
-        media_label = f"{entry.name}/"
-        plan_rows = []
+    if not top_entries:
+        print(f"\n{root_dir} {messages['noop_dir']}")
+        return [], 0, 0
 
-        # 递归遍历当前顶层条目及其所有子目录，查找垃圾文件
-        root_detail = None  # 顶层条目目录本身含垃圾文件时的详情
-        for dirpath, dirnames, filenames in os.walk(media_root):
-            scanned_dirs += 1
-            # 找出该目录下所有属于垃圾文件名集合的文件，并排序以保证输出稳定
-            junk_found = sorted(f for f in filenames if is_junk_file(f))
-            if junk_found:
-                rel_path = os.path.relpath(dirpath, media_root).replace(os.sep, "/")
-                detail = messages["plan_delete"].format(files=", ".join(junk_found))
-                if rel_path == ".":
-                    # 垃圾文件位于顶层条目目录本身，单独记录以便在标题行显示
-                    root_detail = detail
-                else:
-                    plan_rows.append((rel_path, detail))
-                for junk_file in junk_found:
-                    targets.append(os.path.join(dirpath, junk_file))
+    for entry in top_entries:
+        entry_node, entry_targets, entry_dir_count = build_entry_tree(entry.path, messages)
+        scanned_dirs += entry_dir_count
 
-        if not plan_rows and root_detail is None:
+        if not entry_targets:
             noop_count += 1
 
-        flush_media_plan(media_label, plan_rows, messages, root_detail=root_detail)
+        flush_entry_plan(root_dir, entry_node, messages)
+        targets.extend(entry_targets)
 
     return targets, scanned_dirs, noop_count
 

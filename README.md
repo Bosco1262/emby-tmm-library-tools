@@ -46,7 +46,7 @@ This repository currently includes scripts to:
   Recursively scans all directories under each top-level entry in the root.  
   Uses a scan + confirm workflow.  
   Deletes `.bif` files (by extension, case-insensitive), `.DS_Store`, and `Thumbs.db` wherever they are found.  
-  Plan output is grouped per top-level media entry and displayed as a tree.
+  For each top-level entry the header line is printed before scanning begins, so progress is visible in real time. Plan output is grouped per top-level media entry and displayed as a tree.
 
 ## Requirements
 
@@ -201,11 +201,13 @@ The script first asks for output language:
 请选择输出语言 / Please choose output language [zh/en] (default zh):
 ```
 
-It then recursively walks every directory inside each top-level entry and prints a planned deletion tree grouped by media root. Junk found directly inside a top-level entry directory is shown on the header line; junk found in deeper subdirectories is shown as a tree. Each entry is labeled with one of:
+For each top-level entry it first prints a header (root path and `└── EntryName`), then scans the full subtree. After scanning, the result is appended inline:
 
-- `[NOOP] No junk files found in this entry` — no junk files found anywhere in this entry
-- `MediaDir/ [PLAN] Delete <files>` — junk found directly in the top-level entry dir
-- `└── subdir/ [PLAN] Delete <files>` — junk found in a subdirectory
+- If the entry has **no junk** anywhere, the label is appended on the same line as the entry name:  
+  `└── EntryName [NOOP] No junk files found in this directory`
+- If **junk is found**, the entry expands into a full directory tree. Each junk file appears as an individually labeled leaf node (`[PLAN] Delete <filename>`). Each directory that contains no matching junk files and has no subdirectories appears as a `[NOOP]` leaf.
+
+Any junk files found directly under the root directory (outside any top-level entry) are shown first as a separate block before the per-entry output.
 
 After scanning, a summary is printed:
 
@@ -390,14 +392,23 @@ Deleting files...
 Run `python clean_junk.py /media`:
 
 ```text
-MovieA/ [PLAN] Delete .DS_Store
-└── Bonus/
-    └── Behind the Scenes/ [PLAN] Delete Thumbs.db
-        └── Interviews/    [PLAN] Delete intro.BIF
+/media
+└── MovieA
+    ├── .DS_Store [PLAN] Delete .DS_Store
+    └── Bonus
+        └── Behind the Scenes
+            ├── Thumbs.db [PLAN] Delete Thumbs.db
+            └── Interviews
+                └── intro.BIF [PLAN] Delete intro.BIF
 
-ShowB/
-└── S2/
-    └── Extras/ [PLAN] Delete Thumbs.db, chapter00.bif, chapter01.bif
+/media
+└── ShowB
+    └── S2
+        └── Extras
+            ├── chapter00.bif [PLAN] Delete chapter00.bif
+            ├── chapter01.bif [PLAN] Delete chapter01.bif
+            ├── Thumbs.db     [PLAN] Delete Thumbs.db
+            └── Scenes        [NOOP] No junk files found in this directory
 
 === Scan Summary ===
 Scanned directories: 8
@@ -417,8 +428,10 @@ Deleting files...
 
 Notes on the output above:
 
-- **Multiple files in one directory**: `Extras/` has three junk files (`Thumbs.db`, `chapter00.bif`, `chapter01.bif`); they are all listed on one `[PLAN]` line and deleted together.
-- **`clip.DS_Store` is not deleted**: the script matches `.DS_Store` by exact filename only. A file named `clip.DS_Store` has a different name and is left untouched. `Scenes/` does not appear in the plan at all because it contains no matching junk files.
+- **Header printed before scanning**: for each top-level entry, the root path and `└── EntryName` line appear immediately before the subtree is scanned, so you see real-time progress even on large libraries.
+- **Each junk file appears on its own tree line**: `Extras/` has three junk files (`Thumbs.db`, `chapter00.bif`, `chapter01.bif`); each is shown as an individual labeled node, and all three are deleted together after confirmation.
+- **`Scenes/` appears as `[NOOP]`**: `Scenes/` contains only `clip.DS_Store`, which does not match any junk pattern (`.DS_Store` is matched by exact filename, so `clip.DS_Store` is left untouched). Because `Scenes/` has no junk files and no subdirectories it is shown as a noop leaf in the tree; the directory itself is not deleted.
+- **Sibling alignment**: within each group of siblings, names of different lengths are padded so that all status labels start at the same column (see `Thumbs.db` and `Scenes` under `Extras/`).
 
 
 ## Notes

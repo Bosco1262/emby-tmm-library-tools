@@ -42,7 +42,7 @@ English documentation: [README.md](README.md)
 - `clean_junk.py`  
   递归扫描根目录下每个顶层条目的全部子目录。采用“扫描 + 确认”流程。  
   删除所有 `.bif` 文件（按扩展名，不区分大小写）、`.DS_Store` 和 `Thumbs.db`。  
-  计划输出按顶层媒体条目分组，以树形结构显示。
+  每个顶层条目先打印标题行再开始扫描，实时显示扫描进度。计划输出按顶层媒体条目分组，以树形结构显示。
 
 ## 运行要求
 
@@ -197,11 +197,13 @@ python clean_junk.py /path/to/your/library
 请选择输出语言 / Please choose output language [zh/en] (默认 zh):
 ```
 
-脚本递归遍历每个顶层条目下的全部子目录，按顶层媒体条目分组，以树形结构输出删除计划。顶层条目目录本身中发现的垃圾文件显示在标题行，子目录中发现的垃圾文件则以树形展开。每条条目包含以下标签之一：
+对每个顶层条目，脚本先打印标题行（根目录路径与 `└── 条目名`），再开始扫描完整子树。扫描完成后内联追加结果：
 
-- `[无需操作] 目录内不存在需要删除的垃圾文件` — 该顶层条目内未发现任何垃圾文件
-- `MediaDir/ [计划] 删除 <files>` — 垃圾文件位于顶层条目目录本身
-- `└── subdir/ [计划] 删除 <files>` — 垃圾文件位于子目录
+- 若该条目内**无垃圾文件**，标签直接追加在条目名同一行：  
+  `└── 条目名 [无需操作] 目录内不存在需要删除的垃圾文件`
+- 若**发现垃圾文件**，条目名展开为完整目录树。每个垃圾文件以单独标记的叶子节点显示（`[计划] 删除 <文件名>`），无垃圾文件且无子目录的叶子目录折叠为 `[无需操作]`。
+
+直接位于根目录下（不隔属于任何顶层条目）的垃圾文件会先以独立块展示。
 
 扫描结束后输出汇总：
 
@@ -386,14 +388,23 @@ ShowA/
 运行 `python clean_junk.py /media`：
 
 ```text
-MovieA/ [计划] 删除 .DS_Store
-└── Bonus/
-    └── Behind the Scenes/ [计划] 删除 Thumbs.db
-        └── Interviews/    [计划] 删除 intro.BIF
+/media
+└── MovieA
+    ├── .DS_Store [计划] 删除 .DS_Store
+    └── Bonus
+        └── Behind the Scenes
+            ├── Thumbs.db [计划] 删除 Thumbs.db
+            └── Interviews
+                └── intro.BIF [计划] 删除 intro.BIF
 
-ShowB/
-└── S2/
-    └── Extras/ [计划] 删除 Thumbs.db, chapter00.bif, chapter01.bif
+/media
+└── ShowB
+    └── S2
+        └── Extras
+            ├── chapter00.bif [计划] 删除 chapter00.bif
+            ├── chapter01.bif [计划] 删除 chapter01.bif
+            ├── Thumbs.db     [计划] 删除 Thumbs.db
+            └── Scenes        [无需操作] 目录内不存在需要删除的垃圾文件
 
 === 扫描汇总 ===
 扫描目录数: 8
@@ -413,8 +424,11 @@ ShowB/
 
 关于上述输出的说明：
 
-- **同一目录下存在多个待删除文件**：`Extras/` 内有三个垃圾文件（`Thumbs.db`、`chapter00.bif`、`chapter01.bif`），它们在 `[计划]` 行中合并列出并一并删除。
-- **`clip.DS_Store` 不会被删除**：脚本仅按精确文件名匹配 `.DS_Store`，名为 `clip.DS_Store` 的文件名称不同，因此不受影响。`Scenes/` 目录因无匹配垃圾文件而不出现在计划中。
+- **标题行在扫描前先输出**：每个顶层条目的根目录路径与条目名行在扫描开始前即刻显示，大型媒体库也可实时看到扫描进度。
+- **每个垃圾文件占独一行**：`Extras/` 内有三个垃圾文件（`Thumbs.db`、`chapter00.bif`、`chapter01.bif`），每个单独占一行显示，确认后一并删除。
+- **`Scenes/` 以 `[无需操作]` 显示**：`Scenes/` 内只有 `clip.DS_Store` 文件，该文件不匹配任何垃圾模式（`.DS_Store` 按精确文件名匹配，`clip.DS_Store` 不一致）。因此 `Scenes/` 以无需操作叶子节点显示，目录本身不会被删除。
+- **`clip.DS_Store` 不会被删除**：脚本仅按精确文件名匹配 `.DS_Store`，`clip.DS_Store` 不受影响。
+- **元素对齐**：同一层兄弟节点中名称长短不一的组件会进行对齐，让所有状态标签起始列相同（见 `Extras/` 下 `Thumbs.db` 与 `Scenes` 的对齐）。
 
 
 ## 说明

@@ -180,20 +180,6 @@ def render_entry_lines(entry_node: dict) -> list:
     return lines
 
 
-def flush_entry_plan(root_dir: str, entry_node: dict, messages: dict, has_targets: bool):
-    """打印单个顶层条目的计划展示块（先打印 root_dir 标题行，再展开条目树）"""
-    print()
-    entry_line = f"└── {entry_node['name']}"
-    print(root_dir)
-    if not has_targets:
-        # 整个条目树内无垃圾文件：折叠为单行 noop（即使条目本身有子目录）
-        print(f"{entry_line} {messages['noop_dir']}")
-    else:
-        print(entry_line)
-        for line in render_entry_lines(entry_node):
-            print(line)
-
-
 def collect_deletion_targets(root_dir: str, messages: dict) -> tuple:
     """
     扫描根目录下的所有顶层条目，构建并打印各条目的完整树形计划。
@@ -235,13 +221,22 @@ def collect_deletion_targets(root_dir: str, messages: dict) -> tuple:
         return targets, 0, 0
 
     for entry in top_entries:
+        # 先打印标题行，再开始扫描（实时显示扫描进度）
+        print()
+        print(root_dir)
+        print(f"└── {entry.name}", end="", flush=True)
+
         entry_node, entry_targets, entry_dir_count = build_entry_tree(entry.path, messages)
         scanned_dirs += entry_dir_count
 
         if not entry_targets:
             noop_count += 1
+            print(f" {messages['noop_dir']}")
+        else:
+            print()
+            for line in render_entry_lines(entry_node):
+                print(line)
 
-        flush_entry_plan(root_dir, entry_node, messages, bool(entry_targets))
         targets.extend(entry_targets)
 
     return targets, scanned_dirs, noop_count

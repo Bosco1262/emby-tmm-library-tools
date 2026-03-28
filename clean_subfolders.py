@@ -188,12 +188,11 @@ def main(root_dir: str):
         root_dir, messages, delete_nfo=delete_nfo, delete_theme=delete_theme
     )
 
-    type_parts = []
+    type_parts = [".jpg", ".png"]
     if delete_theme:
         type_parts.append("theme.mp3")
     if delete_nfo:
         type_parts.append(".nfo")
-    type_parts += [".png", ".jpg"]
     file_types_label = "/".join(type_parts)
     print(messages["summary_header"])
     print(messages["scanned_subdirs"].format(count=scanned_subdirs))
@@ -222,7 +221,7 @@ def main(root_dir: str):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="先预览后确认：删除无 .ignore 目录中的 theme.mp3/.nfo/.png/.jpg 文件，并删除 .actors；遇到 .ignore 跳过整棵子树"
+        description="先预览后确认：删除无 .ignore 目录中的 .jpg/.png/theme.mp3/.nfo 文件，并删除 .actors；遇到 .ignore 跳过整棵子树"
     )
     parser.add_argument("root_dir", help="要扫描的根目录路径")
     args = parser.parse_args()

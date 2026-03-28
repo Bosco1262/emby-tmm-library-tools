@@ -134,12 +134,12 @@ python clean_subfolders.py /path/to/your/library
 ```text
 === 汇总 ===
 扫描子目录数: N
-计划删除文件数（.png/.jpg）: N
+计划删除文件数（.jpg/.png）: N
 计划删除目录数: N
 因 .ignore 跳过的目录树: N
 ```
 
-汇总中的文件类型标签会反映你的选择：例如全部启用时显示 `（theme.mp3/.nfo/.png/.jpg）`，默认仅显示 `（.png/.jpg）`。
+汇总中的文件类型标签会反映你的选择：例如全部启用时显示 `（.jpg/.png/theme.mp3/.nfo）`，默认仅显示 `（.jpg/.png）`。
 
 若无需删除则直接退出。否则询问确认：
 
@@ -227,20 +227,27 @@ python clean_junk.py /path/to/your/library
 
 ## 示例（推荐顺序）
 
-给定媒体库：
+给定如下媒体库：
 
 ```text
 /media
+├── .deletedByTMM
+│   └── OldShow
 ├── MovieA
+│   ├── .actors
+│   │   └── actor1.jpg
 │   ├── Extras
-│   │   ├── poster.jpg
-│   │   └── .actors
-│   └── poster.jpg
+│   │   └── poster.jpg
+│   ├── poster.jpg
+│   └── theme.mp3
 └── ShowA
-    └── S1
-        └── SPs
-            ├── poster.jpg
-            └── info.nfo
+    ├── S1
+    │   ├── Featurettes
+    │   │   └── thumb.png
+    │   └── SPs
+    │       └── poster.jpg
+    └── Specials
+        └── ep0.jpg
 ```
 
 **第一步** — 运行 `python add_ignore.py /media` 并确认 `yes`。
@@ -248,16 +255,21 @@ python clean_junk.py /path/to/your/library
 脚本扫描一级媒体子目录并输出创建计划：
 
 ```text
+.deletedByTMM/ [跳过] 跳过 .deletedByTMM 目录
+
 MovieA/
-└── Extras/    [计划] 两者都不存在，创建 .ignore 与 .tmmignore
+├── .actors/  [跳过] 跳过 .actors 目录
+└── Extras/   [计划] 两者都不存在，创建 .ignore 与 .tmmignore
 
 ShowA/
-└── S1/
-    └── SPs/   [计划] 两者都不存在，创建 .ignore 与 .tmmignore
+├── S1/
+│   ├── Featurettes/ [计划] 两者都不存在，创建 .ignore 与 .tmmignore
+│   └── SPs/         [计划] 两者都不存在，创建 .ignore 与 .tmmignore
+└── Specials/        [计划] 两者都不存在，创建 .ignore 与 .tmmignore
 
 === 扫描汇总 ===
-扫描子目录数: 2
-计划创建数: 4
+扫描子目录数: 4
+计划创建数: 8
 跳过（已存在）: 0
 
 确认创建吗？输入 yes 继续: yes
@@ -265,37 +277,56 @@ ShowA/
 正在创建文件...
 [已创建] /media/MovieA/Extras/.ignore
 [已创建] /media/MovieA/Extras/.tmmignore
+[已创建] /media/ShowA/S1/Featurettes/.ignore
+[已创建] /media/ShowA/S1/Featurettes/.tmmignore
 [已创建] /media/ShowA/S1/SPs/.ignore
 [已创建] /media/ShowA/S1/SPs/.tmmignore
+[已创建] /media/ShowA/Specials/.ignore
+[已创建] /media/ShowA/Specials/.tmmignore
 ```
 
-**第二步** — 运行 `python clean_subfolders.py /media` 并确认 `yes`。
+- 根目录下的 `.deletedByTMM` 始终跳过，不会在其中创建标记文件。
+- `MovieA` 内的 `.actors` 同样始终跳过。
+- `Specials` 是 `S1` 的同级非季目录，作为直接创建目标（标记文件直接写入 `ShowA/Specials`，而非其子目录）。
 
-脚本递归遍历所有子目录，含 `.ignore` 的子树整体跳过，其余目录执行清理：
+**第二步** — 运行 `python clean_subfolders.py /media`，对 `theme.mp3` 输入 `y`，对 `.nfo` 输入 `N`，然后确认 `yes`。
+
+脚本递归遍历所有子目录。根目录下的 `.deletedByTMM` 计划整体删除；含 `.ignore` 的子树整体跳过；其余目录执行清理：
 
 ```text
 === 正在扫描并规划删除 ===
+[计划] /media
+  待删除目录:
+    - .deletedByTMM/
 [计划] /media/MovieA
   待删除文件:
     - poster.jpg
+    - theme.mp3
+  待删除目录:
+    - .actors/
 [跳过] /media/MovieA/Extras（发现 .ignore，跳过整棵子树）
 [无需操作] /media/ShowA
 [无需操作] /media/ShowA/S1
+[跳过] /media/ShowA/S1/Featurettes（发现 .ignore，跳过整棵子树）
 [跳过] /media/ShowA/S1/SPs（发现 .ignore，跳过整棵子树）
+[跳过] /media/ShowA/Specials（发现 .ignore，跳过整棵子树）
 
 === 汇总 ===
-扫描子目录数: 5
-计划删除文件数（.png/.jpg）: 1
-计划删除目录数: 0
-因 .ignore 跳过的目录树: 2
+扫描子目录数: 7
+计划删除文件数（.jpg/.png/theme.mp3）: 2
+计划删除目录数: 2
+因 .ignore 跳过的目录树: 4
 
 确认删除吗？输入 yes 继续: yes
 
 正在删除...
 [已删除文件] /media/MovieA/poster.jpg
+[已删除文件] /media/MovieA/theme.mp3
+[已删除目录] /media/.deletedByTMM
+[已删除目录] /media/MovieA/.actors
 ```
 
-`MovieA/Extras` 和 `ShowA/S1/SPs` 中的 `poster.jpg` 不受影响，因为这些子树受 `.ignore` 保护。
+`MovieA/Extras`、`ShowA/S1/Featurettes`、`ShowA/S1/SPs` 和 `ShowA/Specials` 内的文件不受影响，因为这些子树受 `.ignore` 保护。
 
 **第三步** — 运行 `python remove_ignore.py /media` 并确认 `yes`。
 
@@ -303,15 +334,17 @@ ShowA/
 
 ```text
 MovieA/
-└── Extras/    [计划] 删除 .tmmignore 和 .ignore
+└── Extras/          [计划] 删除 .tmmignore 和 .ignore
 
 ShowA/
-└── S1/
-    └── SPs/   [计划] 删除 .tmmignore 和 .ignore
+├── S1/
+│   ├── Featurettes/ [计划] 删除 .tmmignore 和 .ignore
+│   └── SPs/         [计划] 删除 .tmmignore 和 .ignore
+└── Specials/        [计划] 删除 .tmmignore 和 .ignore
 
 === 扫描汇总 ===
-扫描子目录数: 2
-计划删除数: 4
+扫描子目录数: 4
+计划删除数: 8
 无需操作数: 0
 
 确认删除吗？输入 yes 继续: yes
@@ -319,46 +352,63 @@ ShowA/
 正在删除文件...
 [已删除] /media/MovieA/Extras/.tmmignore
 [已删除] /media/MovieA/Extras/.ignore
+[已删除] /media/ShowA/S1/Featurettes/.tmmignore
+[已删除] /media/ShowA/S1/Featurettes/.ignore
 [已删除] /media/ShowA/S1/SPs/.tmmignore
 [已删除] /media/ShowA/S1/SPs/.ignore
+[已删除] /media/ShowA/Specials/.tmmignore
+[已删除] /media/ShowA/Specials/.ignore
 ```
 
 ### `clean_junk.py` — 独立示例
 
-`clean_junk.py` 与 `.ignore` 工作流无关，可在任意时刻独立运行。给定一个含有垃圾文件的媒体库：
+`clean_junk.py` 与 `.ignore` 工作流无关，可在任意时刻独立运行。它递归进入每个顶层条目的所有子目录，因此能覆盖任意层级深度。给定一个垃圾文件散布在四层子目录中的媒体库：
 
 ```text
 /media
 ├── MovieA
-│   ├── Thumbs.db
-│   └── Extras
-│       └── chapter00.bif
-└── ShowA
-    └── S1
-        └── ep1.bif
+│   ├── .DS_Store
+│   └── Bonus
+│       └── Behind the Scenes
+│           ├── Thumbs.db
+│           └── Interviews
+│               └── intro.BIF
+└── ShowB
+    └── S2
+        └── Extras
+            ├── chapter00.bif
+            └── Scenes
+                └── clip.DS_Store
 ```
 
 运行 `python clean_junk.py /media`：
 
 ```text
-MovieA/ [计划] 删除 Thumbs.db
-└── Extras/ [计划] 删除 chapter00.bif
+MovieA/ [计划] 删除 .DS_Store
+└── Bonus/
+    └── Behind the Scenes/ [计划] 删除 Thumbs.db
+        └── Interviews/    [计划] 删除 intro.BIF
 
-ShowA/
-└── S1/ [计划] 删除 ep1.bif
+ShowB/
+└── S2/
+    └── Extras/  [计划] 删除 chapter00.bif
+        └── Scenes/ [计划] 删除 clip.DS_Store
 
 === 扫描汇总 ===
-扫描目录数: 4
-计划删除文件数: 3
+扫描目录数: 8
+计划删除文件数: 5
 无垃圾文件的顶层条目数: 0
 
 确认删除吗？输入 yes 继续: yes
 
 正在删除文件...
-[已删除] /media/MovieA/Thumbs.db
-[已删除] /media/MovieA/Extras/chapter00.bif
-[已删除] /media/ShowA/S1/ep1.bif
+[已删除] /media/MovieA/.DS_Store
+[已删除] /media/MovieA/Bonus/Behind the Scenes/Thumbs.db
+[已删除] /media/MovieA/Bonus/Behind the Scenes/Interviews/intro.BIF
+[已删除] /media/ShowB/S2/Extras/chapter00.bif
+[已删除] /media/ShowB/S2/Extras/Scenes/clip.DS_Store
 ```
+
 
 ## 说明
 

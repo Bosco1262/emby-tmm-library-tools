@@ -138,12 +138,12 @@ After scanning, a summary is printed:
 ```text
 === Summary ===
 Scanned subdirectories: N
-Files planned for deletion (.png/.jpg): N
+Files planned for deletion (.jpg/.png): N
 Directories planned for deletion: N
 Skipped directory trees with .ignore: N
 ```
 
-The file-type label in the summary reflects your selections: for example `(theme.mp3/.nfo/.png/.jpg)` if all optional types are enabled, or just `(.png/.jpg)` by default.
+The file-type label in the summary reflects your selections: for example `(.jpg/.png/theme.mp3/.nfo)` if all optional types are enabled, or just `(.jpg/.png)` by default.
 
 If nothing needs to be deleted, the script exits. Otherwise it asks for confirmation:
 
@@ -235,16 +235,23 @@ Given a library like:
 
 ```text
 /media
+├── .deletedByTMM
+│   └── OldShow
 ├── MovieA
+│   ├── .actors
+│   │   └── actor1.jpg
 │   ├── Extras
-│   │   ├── poster.jpg
-│   │   └── .actors
-│   └── poster.jpg
+│   │   └── poster.jpg
+│   ├── poster.jpg
+│   └── theme.mp3
 └── ShowA
-    └── S1
-        └── SPs
-            ├── poster.jpg
-            └── info.nfo
+    ├── S1
+    │   ├── Featurettes
+    │   │   └── thumb.png
+    │   └── SPs
+    │       └── poster.jpg
+    └── Specials
+        └── ep0.jpg
 ```
 
 **Step 1** — Run `python add_ignore.py /media` and confirm with `yes`.
@@ -252,16 +259,21 @@ Given a library like:
 The script scans first-level media subfolders and prints a creation plan:
 
 ```text
+.deletedByTMM/ [SKIP] Skip .deletedByTMM directory
+
 MovieA/
-└── Extras/    [PLAN] Both missing, create .ignore and .tmmignore
+├── .actors/  [SKIP] Skip .actors directory
+└── Extras/   [PLAN] Both missing, create .ignore and .tmmignore
 
 ShowA/
-└── S1/
-    └── SPs/   [PLAN] Both missing, create .ignore and .tmmignore
+├── S1/
+│   ├── Featurettes/ [PLAN] Both missing, create .ignore and .tmmignore
+│   └── SPs/         [PLAN] Both missing, create .ignore and .tmmignore
+└── Specials/        [PLAN] Both missing, create .ignore and .tmmignore
 
 === Scan Summary ===
-Scanned subdirectories: 2
-Planned creations: 4
+Scanned subdirectories: 4
+Planned creations: 8
 Skipped (already existed): 0
 
 Confirm creation? Type yes to continue: yes
@@ -269,37 +281,56 @@ Confirm creation? Type yes to continue: yes
 Creating files...
 [CREATED] /media/MovieA/Extras/.ignore
 [CREATED] /media/MovieA/Extras/.tmmignore
+[CREATED] /media/ShowA/S1/Featurettes/.ignore
+[CREATED] /media/ShowA/S1/Featurettes/.tmmignore
 [CREATED] /media/ShowA/S1/SPs/.ignore
 [CREATED] /media/ShowA/S1/SPs/.tmmignore
+[CREATED] /media/ShowA/Specials/.ignore
+[CREATED] /media/ShowA/Specials/.tmmignore
 ```
 
-**Step 2** — Run `python clean_subfolders.py /media` and confirm with `yes`.
+- `.deletedByTMM` at root level is skipped — no marker files are created in it.
+- `.actors` inside `MovieA` is also skipped.
+- `Specials` is a non-season sibling of `S1`; it is treated as a direct creation target (marker files are created inside `ShowA/Specials` itself, not in its children).
 
-The script recursively walks all subdirectories. Subfolders with `.ignore` are skipped entirely; others are cleaned:
+**Step 2** — Run `python clean_subfolders.py /media`, answer `y` to delete `theme.mp3`, answer `N` for `.nfo`, then confirm with `yes`.
+
+The script recursively walks all subdirectories. The root-level `.deletedByTMM` is planned for whole-directory deletion. Subfolders with `.ignore` are skipped entirely; others are cleaned:
 
 ```text
 === Scanning and planning deletion ===
+[PLAN] /media
+  Directories to delete:
+    - .deletedByTMM/
 [PLAN] /media/MovieA
   Files to delete:
     - poster.jpg
+    - theme.mp3
+  Directories to delete:
+    - .actors/
 [SKIP] /media/MovieA/Extras (found .ignore, skip subtree)
 [NOOP] /media/ShowA
 [NOOP] /media/ShowA/S1
+[SKIP] /media/ShowA/S1/Featurettes (found .ignore, skip subtree)
 [SKIP] /media/ShowA/S1/SPs (found .ignore, skip subtree)
+[SKIP] /media/ShowA/Specials (found .ignore, skip subtree)
 
 === Summary ===
-Scanned subdirectories: 5
-Files planned for deletion (.png/.jpg): 1
-Directories planned for deletion: 0
-Skipped directory trees with .ignore: 2
+Scanned subdirectories: 7
+Files planned for deletion (.jpg/.png/theme.mp3): 2
+Directories planned for deletion: 2
+Skipped directory trees with .ignore: 4
 
 Confirm deletion? Type yes to continue: yes
 
 Deleting...
 [DELETED FILE] /media/MovieA/poster.jpg
+[DELETED FILE] /media/MovieA/theme.mp3
+[DELETED DIR] /media/.deletedByTMM
+[DELETED DIR] /media/MovieA/.actors
 ```
 
-`poster.jpg` inside `MovieA/Extras` and `ShowA/S1/SPs` is untouched because those subtrees are protected by `.ignore`.
+Files inside `MovieA/Extras`, `ShowA/S1/Featurettes`, `ShowA/S1/SPs`, and `ShowA/Specials` are untouched because those subtrees are protected by `.ignore`.
 
 **Step 3** — Run `python remove_ignore.py /media` and confirm with `yes`.
 
@@ -307,15 +338,17 @@ The script uses the same traversal logic as `add_ignore.py` and plans removal of
 
 ```text
 MovieA/
-└── Extras/    [PLAN] Delete .tmmignore and .ignore
+└── Extras/          [PLAN] Delete .tmmignore and .ignore
 
 ShowA/
-└── S1/
-    └── SPs/   [PLAN] Delete .tmmignore and .ignore
+├── S1/
+│   ├── Featurettes/ [PLAN] Delete .tmmignore and .ignore
+│   └── SPs/         [PLAN] Delete .tmmignore and .ignore
+└── Specials/        [PLAN] Delete .tmmignore and .ignore
 
 === Scan Summary ===
-Scanned subdirectories: 2
-Planned deletions: 4
+Scanned subdirectories: 4
+Planned deletions: 8
 No-op directories: 0
 
 Confirm deletion? Type yes to continue: yes
@@ -323,46 +356,63 @@ Confirm deletion? Type yes to continue: yes
 Deleting files...
 [DELETED] /media/MovieA/Extras/.tmmignore
 [DELETED] /media/MovieA/Extras/.ignore
+[DELETED] /media/ShowA/S1/Featurettes/.tmmignore
+[DELETED] /media/ShowA/S1/Featurettes/.ignore
 [DELETED] /media/ShowA/S1/SPs/.tmmignore
 [DELETED] /media/ShowA/S1/SPs/.ignore
+[DELETED] /media/ShowA/Specials/.tmmignore
+[DELETED] /media/ShowA/Specials/.ignore
 ```
 
 ### `clean_junk.py` — standalone example
 
-`clean_junk.py` is independent of the `.ignore` workflow and can be run at any time. Given a library that contains junk files:
+`clean_junk.py` is independent of the `.ignore` workflow and can be run at any time. It recurses into all subdirectories of each top-level entry, so it covers any nesting depth. Given a library with junk files scattered across four levels of subdirectories:
 
 ```text
 /media
 ├── MovieA
-│   ├── Thumbs.db
-│   └── Extras
-│       └── chapter00.bif
-└── ShowA
-    └── S1
-        └── ep1.bif
+│   ├── .DS_Store
+│   └── Bonus
+│       └── Behind the Scenes
+│           ├── Thumbs.db
+│           └── Interviews
+│               └── intro.BIF
+└── ShowB
+    └── S2
+        └── Extras
+            ├── chapter00.bif
+            └── Scenes
+                └── clip.DS_Store
 ```
 
 Run `python clean_junk.py /media`:
 
 ```text
-MovieA/ [PLAN] Delete Thumbs.db
-└── Extras/ [PLAN] Delete chapter00.bif
+MovieA/ [PLAN] Delete .DS_Store
+└── Bonus/
+    └── Behind the Scenes/ [PLAN] Delete Thumbs.db
+        └── Interviews/    [PLAN] Delete intro.BIF
 
-ShowA/
-└── S1/ [PLAN] Delete ep1.bif
+ShowB/
+└── S2/
+    └── Extras/  [PLAN] Delete chapter00.bif
+        └── Scenes/ [PLAN] Delete clip.DS_Store
 
 === Scan Summary ===
-Scanned directories: 4
-Planned file deletions: 3
+Scanned directories: 8
+Planned file deletions: 5
 Top-level entries with no junk: 0
 
 Confirm deletion? Type yes to continue: yes
 
 Deleting files...
-[DELETED] /media/MovieA/Thumbs.db
-[DELETED] /media/MovieA/Extras/chapter00.bif
-[DELETED] /media/ShowA/S1/ep1.bif
+[DELETED] /media/MovieA/.DS_Store
+[DELETED] /media/MovieA/Bonus/Behind the Scenes/Thumbs.db
+[DELETED] /media/MovieA/Bonus/Behind the Scenes/Interviews/intro.BIF
+[DELETED] /media/ShowB/S2/Extras/chapter00.bif
+[DELETED] /media/ShowB/S2/Extras/Scenes/clip.DS_Store
 ```
+
 
 ## Notes
 

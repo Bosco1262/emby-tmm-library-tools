@@ -15,8 +15,9 @@ English documentation: [README.md](README.md)
 2. 批量删除 `.ignore` 与 `.tmmignore`：
    - 使用与 `add_ignore.py` 相同的一层媒体子目录扫描范围
 3. 对**不含** `.ignore` 的目录执行清理：
-   - 删除 `.png`、`.jpg` 文件（可选删除 `.nfo`）
+   - 删除 `.png`、`.jpg` 文件（可选删除 `theme.mp3` 和 `.nfo`）
    - 删除 `.actors` 目录
+   - 删除根目录下的 `.deletedByTMM` 目录（若存在）
 4. 递归删除根目录下所有子文件夹中的垃圾文件：
    - `.bif` 文件（按扩展名匹配，不区分大小写）
    - `.DS_Store` 和 `Thumbs.db`（精确文件名匹配）
@@ -31,7 +32,8 @@ English documentation: [README.md](README.md)
 
 - `clean_subfolders.py`  
   递归扫描根目录下所有子目录。采用“扫描 + 确认”流程。  
-  对于不含 `.ignore` 的目录，删除图片文件（`.png`、`.jpg`）并可选删除 `.nfo`，同时删除 `.actors` 目录。  
+  启动时询问是否额外删除 `theme.mp3` 和/或 `.nfo` 文件。  
+  对于不含 `.ignore` 的目录，删除图片文件（`.png`、`.jpg`）及所选可选文件类型，并删除 `.actors` 目录。根目录下的 `.deletedByTMM` 目录若存在也会整体计划删除。
 
 - `remove_ignore.py`  
   采用与 `add_ignore.py` 相同的媒体遍历逻辑。采用“扫描 + 确认”流程。  
@@ -63,6 +65,7 @@ python add_ignore.py /path/to/your/library
 随后按媒体根目录分组，以树形结构输出创建计划，每条目录条目包含以下标签之一：
 
 - `[跳过] 跳过 .actors 目录` — `.actors` 目录始终跳过
+- `[跳过] 跳过 .deletedByTMM 目录` — 根目录下的 `.deletedByTMM` 目录始终跳过
 - `[跳过] .ignore/.tmmignore 均已存在` — 两个标记文件均已存在，无需操作
 - `[计划] 两者都不存在，创建 .ignore 与 .tmmignore` — 将同时创建两个文件
 - `[计划] 已有 .ignore，创建 .tmmignore` — 将补充创建 `.tmmignore`
@@ -100,6 +103,15 @@ python clean_subfolders.py /path/to/your/library
 请选择输出语言 / Please choose output language [zh/en] (默认 zh):
 ```
 
+随后询问是否删除 `theme.mp3` 文件：
+
+```text
+是否删除 theme.mp3 文件？[y/N]:
+```
+
+- 输入 `y` / `yes`：将 `theme.mp3` 纳入删除范围
+- 直接回车（或其他输入）：不删除 `theme.mp3`（默认，更安全）
+
 随后询问是否删除 `.nfo` 文件：
 
 ```text
@@ -115,6 +127,8 @@ python clean_subfolders.py /path/to/your/library
 - `[计划] <path>` 并附带待删文件/目录列表 — 这些内容将被删除
 - `[无需操作] <path>` — 此目录内无需删除任何内容
 
+若根目录下存在 `.deletedByTMM` 文件夹，会作为一个整体出现在根目录的 `[计划]` 条目中，计划整体删除。
+
 扫描结束后输出汇总：
 
 ```text
@@ -125,13 +139,15 @@ python clean_subfolders.py /path/to/your/library
 因 .ignore 跳过的目录树: N
 ```
 
+汇总中的文件类型标签会反映你的选择：例如全部启用时显示 `（theme.mp3/.nfo/.png/.jpg）`，默认仅显示 `（.png/.jpg）`。
+
 若无需删除则直接退出。否则询问确认：
 
 ```text
 确认删除吗？输入 yes 继续:
 ```
 
-输入 `yes` 后删除计划中的图片文件（`.png`、`.jpg`，可选 `.nfo`）和 `.actors` 目录。其他任何输入都会取消操作。
+输入 `yes` 后删除计划中的图片文件（`.png`、`.jpg`，以及你选择的可选类型）、`.actors` 目录，以及根目录下的 `.deletedByTMM` 目录（若存在）。其他任何输入都会取消操作。
 
 ### 3）`remove_ignore.py` — 从媒体子目录删除 `.ignore` 和 `.tmmignore`
 
@@ -355,8 +371,9 @@ ShowA/
      - 每个同级非季目录（如 `SPs`、`Extras`）作为直接创建目标（即在 `ShowName/SPs` 本身创建标记文件）。
   3. 若不存在 `S<number>` 季目录，则按电影目录处理，扫描其一级子目录（`MovieName/*`）。
   4. 名为 `.actors` 的目录总是跳过，不会在其中创建 `.ignore` / `.tmmignore`。
+  5. 根目录下名为 `.deletedByTMM` 的目录也始终跳过，不会在其中创建标记文件。
 - `remove_ignore.py` 使用相同的一层媒体遍历逻辑，只处理 `.ignore` / `.tmmignore` 标记文件。
-- `clean_subfolders.py` 为递归遍历；任意目录内如果检测到 `.ignore`，会跳过该目录整棵子树。
+- `clean_subfolders.py` 为递归遍历；任意目录内如果检测到 `.ignore`，会跳过该目录整棵子树。根目录下的 `.deletedByTMM` 目录（若存在）会作为整体删除，不会递归进入其内部。
 - `clean_junk.py` 对每个顶层条目的全部子目录做递归遍历。按扩展名（不区分大小写）匹配 `.bif`，按精确文件名匹配 `.DS_Store` 和 `Thumbs.db`。不与 `.ignore` 文件交互。
 
 ## 许可证

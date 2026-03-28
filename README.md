@@ -14,8 +14,9 @@ This repository currently includes scripts to:
 2. Remove `.ignore` and `.tmmignore`:
    - in the same first-level media subfolders scanned by `add_ignore.py`
 3. In subfolders **without** `.ignore`:
-   - Delete `.png`, `.jpg` files (and optionally `.nfo` files)
+   - Delete `.png`, `.jpg` files (and optionally `theme.mp3` and `.nfo` files)
    - Delete `.actors` directory if it exists
+   - Delete `.deletedByTMM` directory at root level if it exists
 4. Recursively delete junk files across all subfolders under the root:
    - `.bif` files (matched by extension, case-insensitive)
    - `.DS_Store` and `Thumbs.db` (matched by exact name)
@@ -33,7 +34,8 @@ This repository currently includes scripts to:
 - `clean_subfolders.py`  
   Scans all subfolders under a root directory.  
   Uses a scan + confirm workflow.  
-  For subfolders without `.ignore`, it deletes image files (`.png`, `.jpg`) and optionally `.nfo` files (you are prompted at startup), and removes `.actors` directory.
+  At startup asks whether to also delete `theme.mp3` and/or `.nfo` files.  
+  For subfolders without `.ignore`, it deletes image files (`.png`, `.jpg`) and any optional file types you selected, and removes `.actors` directories. At root level, the `.deletedByTMM` directory is planned for deletion as a whole if present.
 
 - `remove_ignore.py`  
   Uses the same media traversal logic as `add_ignore.py`.  
@@ -67,6 +69,7 @@ The script first asks for output language:
 It then scans and prints a planned creation tree grouped by media root. Each entry is labeled with one of:
 
 - `[SKIP] Skip .actors directory` — `.actors` directories are always skipped
+- `[SKIP] Skip .deletedByTMM directory` — `.deletedByTMM` directories at root level are always skipped
 - `[SKIP] .ignore/.tmmignore already exist` — both marker files are already present
 - `[PLAN] Both missing, create .ignore and .tmmignore` — will create both files
 - `[PLAN] .ignore exists, create .tmmignore` — will create the missing `.tmmignore`
@@ -104,6 +107,15 @@ The script first asks for output language:
 请选择输出语言 / Please choose output language [zh/en] (default zh):
 ```
 
+Then it asks whether to delete `theme.mp3` files:
+
+```text
+Delete theme.mp3 files? [y/N]:
+```
+
+- Enter `y` or `yes` to include `theme.mp3` in the deletion.
+- Press Enter (or type anything else) to skip `theme.mp3` files (default, safe choice).
+
 Then it asks whether to include `.nfo` files in the deletion:
 
 ```text
@@ -119,6 +131,8 @@ The script then recursively walks all subdirectories and prints the planned acti
 - `[PLAN] <path>` followed by files/directories planned for deletion — these will be removed
 - `[NOOP] <path>` — nothing to delete in this directory
 
+At the root level, if a `.deletedByTMM` directory exists it is planned for deletion as a whole (shown as a `[PLAN]` entry under the root).
+
 After scanning, a summary is printed:
 
 ```text
@@ -129,13 +143,15 @@ Directories planned for deletion: N
 Skipped directory trees with .ignore: N
 ```
 
+The file-type label in the summary reflects your selections: for example `(theme.mp3/.nfo/.png/.jpg)` if all optional types are enabled, or just `(.png/.jpg)` by default.
+
 If nothing needs to be deleted, the script exits. Otherwise it asks for confirmation:
 
 ```text
 Confirm deletion? Type yes to continue:
 ```
 
-Type `yes` to delete the planned image files (`.png`, `.jpg`, and optionally `.nfo`) and `.actors` directories. Any other input cancels without making changes.
+Type `yes` to delete the planned image files (`.png`, `.jpg`, and any optional types you selected), `.actors` directories, and the `.deletedByTMM` root directory if present. Any other input cancels without making changes.
 
 ### 3) `remove_ignore.py` — Remove `.ignore` and `.tmmignore` from media subfolders
 
@@ -358,9 +374,10 @@ Deleting files...
      - each season dir (`S1`, `S2`, ...) is treated as a media base dir and the script scans its first-level child directories (`S1/*`) as creation targets;
      - each sibling non-season dir (for example `SPs`, `Extras`) is treated as a direct creation target (creates `.ignore`/`.tmmignore` in `ShowName/SPs` itself, not only in `ShowName/SPs/*`).
   3. If that folder contains no `S<number>` directories, it is treated as a movie base dir and the script scans its first-level child directories (`MovieName/*`) as creation targets.
-   4. Any directory named `.actors` is always skipped (both “with seasons” and “without seasons” cases), so `.actors` is not treated as a creation target and no `.ignore`/`.tmmignore` files are created in it.
+  4. Any directory named `.actors` is always skipped (both “with seasons” and “without seasons” cases), so `.actors` is not treated as a creation target and no `.ignore`/`.tmmignore` files are created in it.
+  5. Any directory named `.deletedByTMM` directly under `root` is also always skipped — no marker files are created in it.
 - `remove_ignore.py` uses the same first-level media traversal logic and only handles `.ignore` / `.tmmignore` marker files.
-- `clean_subfolders.py` walks recursively and skips any subtree that contains `.ignore`.
+- `clean_subfolders.py` walks recursively and skips any subtree that contains `.ignore`. At root level, the `.deletedByTMM` directory (if present) is deleted as a whole rather than recursed into.
 - `clean_junk.py` walks recursively across the entire subtree of each top-level entry. It matches `.bif` by file extension (case-insensitive) and `.DS_Store` / `Thumbs.db` by exact filename. It does not interact with `.ignore` files.
 
 ## License

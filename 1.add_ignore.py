@@ -8,33 +8,8 @@ import unicodedata
 SEASON_DIR_PATTERN = re.compile(r"^S\d+$", re.IGNORECASE)
 MEDIA_LABEL_WIDTH = 20
 MESSAGES = {
-    "zh": {
-        "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (默认 zh): ",
-        "plan_header": "\n{media_label}",
-        "plan_header_noop": "\n{media_label} {detail}",
-        "noop_dir": "[无需操作] 目录内不存在需要操作的子目录",
-        "skip_actors": "[跳过] 跳过 .actors 目录",
-        "skip_deleted_by_tmm": "[跳过] 跳过 .deletedByTMM 目录",
-        "both_exists": "[跳过] .ignore/.tmmignore 均已存在",
-        "has_ignore": "[计划] 已有 .ignore，创建 .tmmignore",
-        "has_tmmignore": "[计划] 已有 .tmmignore，创建 .ignore",
-        "create_both": "[计划] 两者都不存在，创建 .ignore 与 .tmmignore",
-        "scan_summary": "\n=== 扫描汇总 ===",
-        "scanned_subdirs": "扫描子目录数: {count}",
-        "planned_creations": "计划创建数: {count}",
-        "skipped_exists": "跳过（已存在）: {count}",
-        "nothing_to_create": "\n无需创建任何文件。",
-        "confirm_create": "\n确认创建吗？输入 yes 继续: ",
-        "canceled": "已取消，未创建任何文件。",
-        "creating": "\n正在创建文件...",
-        "created": "[已创建] {path}",
-        "error_create": "[错误] 创建失败: {path} ({error})",
-        "done": "\n完成。",
-        "created_count": "已创建: {count}",
-        "errors": "错误: {count}",
-    },
     "en": {
-        "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (default zh): ",
+        "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (default en): ",
         "plan_header": "\n{media_label}",
         "plan_header_noop": "\n{media_label} {detail}",
         "noop_dir": "[NOOP] No files in this directory require action",
@@ -58,15 +33,41 @@ MESSAGES = {
         "created_count": "Created: {count}",
         "errors": "Errors: {count}",
     },
+    "zh": {
+        "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (默认 en): ",
+        "plan_header": "\n{media_label}",
+        "plan_header_noop": "\n{media_label} {detail}",
+        "noop_dir": "[无需操作] 目录内不存在需要操作的子目录",
+        "skip_actors": "[跳过] 跳过 .actors 目录",
+        "skip_deleted_by_tmm": "[跳过] 跳过 .deletedByTMM 目录",
+        "both_exists": "[跳过] .ignore/.tmmignore 均已存在",
+        "has_ignore": "[计划] 已有 .ignore，创建 .tmmignore",
+        "has_tmmignore": "[计划] 已有 .tmmignore，创建 .ignore",
+        "create_both": "[计划] 两者都不存在，创建 .ignore 与 .tmmignore",
+        "scan_summary": "\n=== 扫描汇总 ===",
+        "scanned_subdirs": "扫描子目录数: {count}",
+        "planned_creations": "计划创建数: {count}",
+        "skipped_exists": "跳过（已存在）: {count}",
+        "nothing_to_create": "\n无需创建任何文件。",
+        "confirm_create": "\n确认创建吗？输入 yes 继续: ",
+        "canceled": "已取消，未创建任何文件。",
+        "creating": "\n正在创建文件...",
+        "created": "[已创建] {path}",
+        "error_create": "[错误] 创建失败: {path} ({error})",
+        "done": "\n完成。",
+        "created_count": "已创建: {count}",
+        "errors": "错误: {count}",
+    },
 }
 
 
 def choose_language() -> str:
-    answer = input(MESSAGES["zh"]["choose_lang"]).strip().lower()
-    return "en" if answer == "en" else "zh"
+    answer = input(MESSAGES["en"]["choose_lang"]).strip().lower()
+    return "zh" if answer == "zh" else "en"
 
 
 def iter_media_base_dirs(root_dir: str):
+    # Split by season dirs (S1/S2...) and non-season dirs for unified handling
     # 先按剧集目录（S1/S2...）和非剧集目录拆分，便于后续统一处理
     for entry in os.scandir(root_dir):
         if not entry.is_dir():
@@ -95,6 +96,7 @@ def flush_media_plan(media_label: str, plan_rows, messages, forced_detail=None):
     def display_width(text: str) -> int:
         width = 0
         for ch in text:
+            # Wide characters (F/W) count as 2 display units, others as 1, ensuring stable alignment in mixed CJK/Latin output
             # 宽字符(F/W)按2个显示位计算，其他字符按1个显示位计算，保证中英文混排时对齐稳定
             width += 2 if unicodedata.east_asian_width(ch) in ("F", "W") else 1
         return width
@@ -159,13 +161,16 @@ def collect_creation_targets(root_dir: str, messages):
             current_media_root = media_root
             plan_rows = []
 
+        # Skip .deletedByTMM directories under root, do not scan their contents
         # 跳过根目录下的 .deletedByTMM 文件夹，不扫描其内容
         if os.path.basename(media_root) == ".deletedByTMM":
             flush_media_plan(
                 f"{os.path.basename(media_root)}/", [], messages,
                 forced_detail=messages["skip_deleted_by_tmm"],
             )
-            current_media_root = None  # 此媒体根已处理，重置状态避免重复刷新
+            # This media root has been handled; reset state to avoid duplicate flush
+            # 此媒体根已处理，重置状态避免重复刷新
+            current_media_root = None
             continue
 
         if scan_self:
@@ -175,6 +180,9 @@ def collect_creation_targets(root_dir: str, messages):
                 dirs_to_scan = [entry.path for entry in entries if entry.is_dir()]
             if not dirs_to_scan:
                 rel_base = os.path.relpath(base_dir, media_root).replace(os.sep, "/")
+                # rel_base == "." means the movie dir itself has no subdirs; handled by the media-level NOOP header
+                # Only supplement per-row NOOP for nested base dirs to avoid duplicate output
+                #
                 # rel_base == "." 表示电影目录本身无子目录；该场景由媒体级“无需操作”头行展示，
                 # 这里只为嵌套基目录补充逐行“无需操作”，避免重复输出。
                 if rel_base != ".":
@@ -265,11 +273,11 @@ def add_ignore_and_tmmignore(root_dir: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=(
-            "扫描并规划在媒体子目录中创建 .ignore/.tmmignore，支持 "
-            "Root/MovieName/ 与 Root/ShowName/S1 两种结构"
+            "Scan and plan to create .ignore/.tmmignore files in the media subdirectory, supporting both Root/MovieName/ and Root/ShowName/S1 structures"
+            "扫描并规划在媒体子目录中创建 .ignore/.tmmignore，支持 Root/MovieName/ 与 Root/ShowName/S1 两种结构"
         )
     )
-    parser.add_argument("root_dir", help="媒体库根目录路径")
+    parser.add_argument("root_dir", help="Media library root directory path / 媒体库根目录路径")
     args = parser.parse_args()
 
     add_ignore_and_tmmignore(args.root_dir)

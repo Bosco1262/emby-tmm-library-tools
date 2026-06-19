@@ -3,14 +3,17 @@ import os
 import unicodedata
 
 
+# Target junk files: exact filename match (case-sensitive)
 # 目标垃圾文件：精确文件名匹配（区分大小写）
 JUNK_EXACT_NAMES = {".DS_Store", "Thumbs.db"}
+# Target junk files: extension match (case-insensitive)
 # 目标垃圾文件：按扩展名匹配（不区分大小写）
 JUNK_SUFFIXES = {".bif"}
 
 
 def is_junk_file(filename: str) -> bool:
-    """判断文件名是否属于垃圾文件（精确名称或扩展名匹配）"""
+    # Check if a filename is a junk file (exact name or extension match)
+    # 判断文件名是否属于垃圾文件（精确名称或扩展名匹配）
     if filename in JUNK_EXACT_NAMES:
         return True
     _, ext = os.path.splitext(filename)
@@ -18,7 +21,8 @@ def is_junk_file(filename: str) -> bool:
 
 
 def display_width(text: str) -> int:
-    """计算字符串的显示宽度（宽字符按 2 计算，其余按 1 计算）"""
+    # Calculate the display width of a string (wide chars count as 2, others as 1)
+    # 计算字符串的显示宽度（宽字符按 2 计算，其余按 1 计算）
     width = 0
     for ch in text:
         width += 2 if unicodedata.east_asian_width(ch) in ("F", "W") else 1
@@ -26,31 +30,14 @@ def display_width(text: str) -> int:
 
 
 def pad_to_width(text: str, target_width: int) -> str:
-    """在字符串末尾填充空格以达到目标显示宽度"""
+    # Pad the text with spaces at the end to reach the target display width
+    # 在字符串末尾填充空格以达到目标显示宽度
     return text + (" " * max(0, target_width - display_width(text)))
 
 
 MESSAGES = {
-    "zh": {
-        "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (默认 zh): ",
-        "noop_dir": "[无需操作] 目录内不存在需要删除的垃圾文件",
-        "plan_delete": "[计划] 删除 {filename}",
-        "scan_summary": "\n=== 扫描汇总 ===",
-        "scanned_dirs": "扫描目录数: {count}",
-        "planned_deletions": "计划删除文件数: {count}",
-        "noop_count": "无垃圾文件的顶层条目数: {count}",
-        "nothing_to_delete": "\n无需删除任何文件。",
-        "confirm_delete": "\n确认删除吗？输入 yes 继续: ",
-        "canceled": "已取消，未删除任何文件。",
-        "deleting": "\n正在删除文件...",
-        "deleted": "[已删除] {path}",
-        "error_delete": "[错误] 删除失败: {path} ({error})",
-        "done": "\n完成。",
-        "deleted_count": "已删除: {count}",
-        "errors": "错误: {count}",
-    },
     "en": {
-        "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (default zh): ",
+        "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (default en): ",
         "noop_dir": "[NOOP] No junk files found in this directory",
         "plan_delete": "[PLAN] Delete {filename}",
         "scan_summary": "\n=== Scan Summary ===",
@@ -67,16 +54,49 @@ MESSAGES = {
         "deleted_count": "Deleted: {count}",
         "errors": "Errors: {count}",
     },
+    "zh": {
+        "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (默认 en): ",
+        "noop_dir": "[无需操作] 目录内不存在需要删除的垃圾文件",
+        "plan_delete": "[计划] 删除 {filename}",
+        "scan_summary": "\n=== 扫描汇总 ===",
+        "scanned_dirs": "扫描目录数: {count}",
+        "planned_deletions": "计划删除文件数: {count}",
+        "noop_count": "无垃圾文件的顶层条目数: {count}",
+        "nothing_to_delete": "\n无需删除任何文件。",
+        "confirm_delete": "\n确认删除吗？输入 yes 继续: ",
+        "canceled": "已取消，未删除任何文件。",
+        "deleting": "\n正在删除文件...",
+        "deleted": "[已删除] {path}",
+        "error_delete": "[错误] 删除失败: {path} ({error})",
+        "done": "\n完成。",
+        "deleted_count": "已删除: {count}",
+        "errors": "错误: {count}",
+    },
 }
 
 
 def choose_language() -> str:
-    answer = input(MESSAGES["zh"]["choose_lang"]).strip().lower()
-    return "en" if answer == "en" else "zh"
+    answer = input(MESSAGES["en"]["choose_lang"]).strip().lower()
+    return "zh" if answer == "zh" else "en"
 
 
 def build_entry_tree(entry_path: str, messages: dict) -> tuple:
     """
+    Recursively build the full directory tree of a top-level entry (including all subdirs and junk file nodes).
+
+    Each node structure:
+        {'name': str, 'is_dir': bool, 'children': list, 'detail': str | None}
+
+    - Junk files are leaf nodes with detail = plan_delete label
+    - Directory nodes with no junk and no children have detail = noop_dir label
+    - Other directory nodes have detail = None, expanded via children
+
+    Returns (root_node, targets, dir_count):
+        root_node  — Entry root node
+        targets    — List of absolute file paths to delete
+        dir_count  — Total scanned directory count
+
+
     递归构建顶层条目的完整目录树（包含所有子目录和垃圾文件节点）。
 
     每个节点结构：
@@ -86,7 +106,7 @@ def build_entry_tree(entry_path: str, messages: dict) -> tuple:
     - 无垃圾文件且无子目录的目录节点，detail 为 noop_dir 标签。
     - 其余目录节点 detail 为 None，由 children 展开。
 
-    返回 (root_node, targets, dir_count)：
+    返回 (root_node, targets, dir_count):
         root_node  — 条目根节点
         targets    — 需要删除的文件绝对路径列表
         dir_count  — 扫描的目录总数
@@ -112,10 +132,12 @@ def build_entry_tree(entry_path: str, messages: dict) -> tuple:
         subdirs = [e for e in raw_entries if e.is_dir()]
 
         if not junk_files and not subdirs:
+            # Leaf directory: no junk files to process and no subdirectories
             # 叶子目录：无可处理垃圾文件，且无子目录
             node["detail"] = messages["noop_dir"]
             return node
 
+        # Junk file nodes (sorted by filename) come before sibling subdirectory nodes
         # 垃圾文件节点（文件名升序）排在同级子目录之前
         for e in junk_files:
             targets.append(e.path)
@@ -128,6 +150,7 @@ def build_entry_tree(entry_path: str, messages: dict) -> tuple:
                 }
             )
 
+        # Subdirectory nodes are built recursively (sorted by name ascending)
         # 子目录节点递归构建（目录名升序）
         for e in subdirs:
             node["children"].append(build_node(e.path))
@@ -140,8 +163,12 @@ def build_entry_tree(entry_path: str, messages: dict) -> tuple:
 
 def render_entry_lines(entry_node: dict) -> list:
     """
-    将条目节点的子树渲染为树形行列表。
+    Render the subtree of an entry node as a list of tree lines.
+    Siblings (files and subdirs mixed) under the same parent are aligned by display width,
+    so their status labels (detail) start at the same column.
+    The entry itself is shown with a └── branch, so its children start at 4-space indent.
 
+    将条目节点的子树渲染为树形行列表。
     同一父目录下的兄弟节点（文件与子目录混合）按显示宽度对齐，
     使各自的状态标签（detail）起始列保持一致。
     条目本身以 └── 分支显示，故其子节点从 4 空格缩进开始。
@@ -153,6 +180,7 @@ def render_entry_lines(entry_node: dict) -> list:
         if not children:
             return
 
+        # Pre-compute the leading text for all sibling child nodes
         # 预计算同级所有子节点的行首文字
         heads = []
         for i, child in enumerate(children):
@@ -160,6 +188,7 @@ def render_entry_lines(entry_node: dict) -> list:
             branch = "└──" if is_last else "├──"
             heads.append(f"{prefix}{branch} {child['name']}")
 
+        # Align by the max display width of labeled siblings (expanded nodes do not affect column width)
         # 以同级有内联标签的节点的最大显示宽度对齐（展开节点不参与列宽计算）
         labeled_widths = [display_width(h) for h, child in zip(heads, children) if child["detail"]]
         max_width = max(labeled_widths) if labeled_widths else 0
@@ -175,6 +204,7 @@ def render_entry_lines(entry_node: dict) -> list:
 
             collect(child, child_prefix)
 
+    # Entry always shown with └── (each entry occupies its own block), children indented 4 spaces
     # 条目始终以 └── 显示（每个条目独占一个块），子节点缩进 4 个空格
     collect(entry_node, "    ")
     return lines
@@ -182,9 +212,17 @@ def render_entry_lines(entry_node: dict) -> list:
 
 def collect_deletion_targets(root_dir: str, messages: dict) -> tuple:
     """
+    Scan all top-level entries under root_dir, build and print each entry's full tree plan.
+
+    Returns (targets, scanned_dirs, noop_count):
+        targets      — List of all file paths to delete
+        scanned_dirs — Total scanned directory count (including subdirs of each entry)
+        noop_count   — Number of top-level entries with no junk
+
+
     扫描根目录下的所有顶层条目，构建并打印各条目的完整树形计划。
 
-    返回 (targets, scanned_dirs, noop_count)：
+    返回 (targets, scanned_dirs, noop_count):
         targets      — 全部待删除文件的绝对路径列表
         scanned_dirs — 扫描的目录总数（含各条目子目录）
         noop_count   — 无垃圾文件的顶层条目数
@@ -198,6 +236,7 @@ def collect_deletion_targets(root_dir: str, messages: dict) -> tuple:
     except OSError:
         return [], 0, 0
 
+    # Junk files directly in the root directory itself (not belonging to any sub-entry)
     # 根目录本身直接包含的垃圾文件（不隶属于任何子条目）
     root_junk = [e for e in root_scan if e.is_file() and is_junk_file(e.name)]
     if root_junk:
@@ -221,6 +260,7 @@ def collect_deletion_targets(root_dir: str, messages: dict) -> tuple:
         return targets, 0, 0
 
     for entry in top_entries:
+        # Print the header line first, then start scanning (shows progress in real time)
         # 先打印标题行，再开始扫描（实时显示扫描进度）
         print()
         print(root_dir)
@@ -287,11 +327,11 @@ def clean_junk_files(root_dir: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=(
-            "递归扫描根目录下所有子文件夹，删除 .bif、.DS_Store、Thumbs.db 等垃圾文件，"
-            "支持先扫描预览再确认执行"
+            "Recursively scan all subdirectories under root, delete junk files such as .bif, .DS_Store, Thumbs.db, with scan-preview-then-confirm workflow"
+            "递归扫描根目录下所有子文件夹，删除 .bif、.DS_Store、Thumbs.db 等垃圾文件，支持先扫描预览再确认执行"
         )
     )
-    parser.add_argument("root_dir", help="媒体库根目录路径")
+    parser.add_argument("root_dir", help="Media library root directory path / 媒体库根目录路径")
     args = parser.parse_args()
 
     clean_junk_files(args.root_dir)

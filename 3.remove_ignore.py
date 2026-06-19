@@ -8,30 +8,8 @@ import unicodedata
 SEASON_DIR_PATTERN = re.compile(r"^S\d+$", re.IGNORECASE)
 MEDIA_LABEL_WIDTH = 20
 MESSAGES = {
-    "zh": {
-        "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (默认 zh): ",
-        "plan_header": "\n{media_label}",
-        "plan_header_noop": "\n{media_label} {detail}",
-        "noop_dir": "[无需操作] 目录内不存在需要操作的文件",
-        "delete_both": "[计划] 删除 .tmmignore 和 .ignore",
-        "delete_tmmignore": "[计划] 删除 .tmmignore",
-        "delete_ignore": "[计划] 删除 .ignore",
-        "scan_summary": "\n=== 扫描汇总 ===",
-        "scanned_subdirs": "扫描子目录数: {count}",
-        "planned_deletions": "计划删除数: {count}",
-        "noop_count": "无需操作数: {count}",
-        "nothing_to_delete": "\n无需删除任何文件。",
-        "confirm_delete": "\n确认删除吗？输入 yes 继续: ",
-        "canceled": "已取消，未删除任何文件。",
-        "deleting": "\n正在删除文件...",
-        "deleted": "[已删除] {path}",
-        "error_delete": "[错误] 删除失败: {path} ({error})",
-        "done": "\n完成。",
-        "deleted_count": "已删除: {count}",
-        "errors": "错误: {count}",
-    },
     "en": {
-        "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (default zh): ",
+        "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (default en): ",
         "plan_header": "\n{media_label}",
         "plan_header_noop": "\n{media_label} {detail}",
         "noop_dir": "[NOOP] No files in this directory require action",
@@ -52,15 +30,38 @@ MESSAGES = {
         "deleted_count": "Deleted: {count}",
         "errors": "Errors: {count}",
     },
+    "zh": {
+        "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (默认 en): ",
+        "plan_header": "\n{media_label}",
+        "plan_header_noop": "\n{media_label} {detail}",
+        "noop_dir": "[无需操作] 目录内不存在需要操作的文件",
+        "delete_both": "[计划] 删除 .tmmignore 和 .ignore",
+        "delete_tmmignore": "[计划] 删除 .tmmignore",
+        "delete_ignore": "[计划] 删除 .ignore",
+        "scan_summary": "\n=== 扫描汇总 ===",
+        "scanned_subdirs": "扫描子目录数: {count}",
+        "planned_deletions": "计划删除数: {count}",
+        "noop_count": "无需操作数: {count}",
+        "nothing_to_delete": "\n无需删除任何文件。",
+        "confirm_delete": "\n确认删除吗？输入 yes 继续: ",
+        "canceled": "已取消，未删除任何文件。",
+        "deleting": "\n正在删除文件...",
+        "deleted": "[已删除] {path}",
+        "error_delete": "[错误] 删除失败: {path} ({error})",
+        "done": "\n完成。",
+        "deleted_count": "已删除: {count}",
+        "errors": "错误: {count}",
+    },
 }
 
 
 def choose_language() -> str:
-    answer = input(MESSAGES["zh"]["choose_lang"]).strip().lower()
-    return "en" if answer == "en" else "zh"
+    answer = input(MESSAGES["en"]["choose_lang"]).strip().lower()
+    return "zh" if answer == "zh" else "en"
 
 
 def iter_media_base_dirs(root_dir: str):
+    # Split by season dirs (S1/S2...) and non-season dirs for unified handling
     # 先按剧集目录（S1/S2...）和非剧集目录拆分，便于后续统一处理
     for entry in os.scandir(root_dir):
         if not entry.is_dir():
@@ -89,6 +90,7 @@ def flush_media_plan(media_label: str, plan_rows, messages):
     def display_width(text: str) -> int:
         width = 0
         for ch in text:
+            # Wide characters (F/W) count as 2 display units, others as 1, ensuring stable alignment in mixed CJK/Latin output
             # 宽字符(F/W)按2个显示位计算，其他字符按1个显示位计算，保证中英文混排时对齐稳定
             width += 2 if unicodedata.east_asian_width(ch) in ("F", "W") else 1
         return width
@@ -159,6 +161,9 @@ def collect_deletion_targets(root_dir: str, messages):
                 dirs_to_scan = [entry.path for entry in entries if entry.is_dir()]
             if not dirs_to_scan:
                 rel_base = os.path.relpath(base_dir, media_root).replace(os.sep, "/")
+                # rel_base == "." means the movie dir itself has no subdirs; handled by the media-level NOOP header
+                # Only supplement per-row NOOP for nested base dirs to avoid duplicate output
+                #
                 # rel_base == "." 表示电影目录本身无子目录；该场景由媒体级“无需操作”头行展示，
                 # 这里只为嵌套基目录补充逐行“无需操作”，避免重复输出。
                 if rel_base != ".":
@@ -241,11 +246,11 @@ def remove_ignore_and_tmmignore(root_dir: str):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=(
-            "扫描并规划在媒体子目录中删除 .ignore/.tmmignore，支持 "
-            "Root/MovieName/ 与 Root/ShowName/S1 两种结构"
+            "Scan and plan to delete .ignore/.tmmignore files in the media subdirectory, supporting both Root/MovieName/ and Root/ShowName/S1 structures"
+            "扫描并规划在媒体子目录中删除 .ignore/.tmmignore，支持 Root/MovieName/ 与 Root/ShowName/S1 两种结构"
         )
     )
-    parser.add_argument("root_dir", help="媒体库根目录路径")
+    parser.add_argument("root_dir", help="Media library root directory path / 媒体库根目录路径")
     args = parser.parse_args()
 
     remove_ignore_and_tmmignore(args.root_dir)

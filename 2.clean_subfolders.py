@@ -7,40 +7,8 @@ BASE_EXTENSIONS = {".png", ".jpg"}
 NFO_EXTENSION = ".nfo"
 THEME_MP3_FILENAME = "theme.mp3"
 MESSAGES = {
-    "zh": {
-        "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (默认 zh): ",
-        "ask_delete_theme": "是否删除 theme.mp3 文件？[y/N]: ",
-        "theme_yes": "theme.mp3 文件将会被删除。",
-        "theme_no": "theme.mp3 文件不会被删除。",
-        "ask_delete_nfo": "是否删除 .nfo 文件？[y/N]: ",
-        "nfo_yes": ".nfo 文件将会被删除。",
-        "nfo_no": ".nfo 文件不会被删除。",
-        "scanning_header": "\n=== 正在扫描并规划删除 ===",
-        "skip_ignore_tree": "[跳过] {path}（发现 .ignore，跳过整棵子树）",
-        "plan_dir": "[计划] {path}",
-        "plan_files": "  待删除文件:",
-        "plan_dirs": "  待删除目录:",
-        "plan_item": "    - {item}",
-        "plan_noop": "[无需操作] {path}",
-        "summary_header": "\n=== 汇总 ===",
-        "scanned_subdirs": "扫描子目录数: {count}",
-        "files_planned": "计划删除文件数（{types}）: {count}",
-        "dirs_planned": "计划删除目录数: {count}",
-        "ignored_trees": "因 .ignore 跳过的目录树: {count}",
-        "nothing_to_delete": "\n无需删除任何内容。",
-        "confirm_delete": "\n确认删除吗？输入 yes 继续: ",
-        "canceled": "已取消，未执行删除。",
-        "deleting": "\n正在删除...",
-        "deleted_file": "[已删除文件] {path}",
-        "deleted_dir": "[已删除目录] {path}",
-        "error_file": "[错误] 删除文件失败: {path} ({error})",
-        "error_dir": "[错误] 删除目录失败: {path} ({error})",
-        "done": "\n完成。",
-        "deleted_files_summary": "已删除文件（{types}）: {count}",
-        "deleted_dirs_summary": "已删除特殊目录（.actors/.deletedByTMM）: {count}",
-    },
     "en": {
-        "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (default zh): ",
+        "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (default en): ",
         "ask_delete_theme": "Delete theme.mp3 files? [y/N]: ",
         "theme_yes": "theme.mp3 files WILL be deleted.",
         "theme_no": "theme.mp3 files will NOT be deleted.",
@@ -71,12 +39,44 @@ MESSAGES = {
         "deleted_files_summary": "Deleted files ({types}): {count}",
         "deleted_dirs_summary": "Deleted special directories (.actors/.deletedByTMM): {count}",
     },
+    "zh": {
+        "choose_lang": "请选择输出语言 / Please choose output language [zh/en] (默认 en): ",
+        "ask_delete_theme": "是否删除 theme.mp3 文件？[y/N]: ",
+        "theme_yes": "theme.mp3 文件将会被删除。",
+        "theme_no": "theme.mp3 文件不会被删除。",
+        "ask_delete_nfo": "是否删除 .nfo 文件？[y/N]: ",
+        "nfo_yes": ".nfo 文件将会被删除。",
+        "nfo_no": ".nfo 文件不会被删除。",
+        "scanning_header": "\n=== 正在扫描并规划删除 ===",
+        "skip_ignore_tree": "[跳过] {path}（发现 .ignore，跳过整棵子树）",
+        "plan_dir": "[计划] {path}",
+        "plan_files": "  待删除文件:",
+        "plan_dirs": "  待删除目录:",
+        "plan_item": "    - {item}",
+        "plan_noop": "[无需操作] {path}",
+        "summary_header": "\n=== 汇总 ===",
+        "scanned_subdirs": "扫描子目录数: {count}",
+        "files_planned": "计划删除文件数（{types}）: {count}",
+        "dirs_planned": "计划删除目录数: {count}",
+        "ignored_trees": "因 .ignore 跳过的目录树: {count}",
+        "nothing_to_delete": "\n无需删除任何内容。",
+        "confirm_delete": "\n确认删除吗？输入 yes 继续: ",
+        "canceled": "已取消，未执行删除。",
+        "deleting": "\n正在删除...",
+        "deleted_file": "[已删除文件] {path}",
+        "deleted_dir": "[已删除目录] {path}",
+        "error_file": "[错误] 删除文件失败: {path} ({error})",
+        "error_dir": "[错误] 删除目录失败: {path} ({error})",
+        "done": "\n完成。",
+        "deleted_files_summary": "已删除文件（{types}）: {count}",
+        "deleted_dirs_summary": "已删除特殊目录（.actors/.deletedByTMM）: {count}",
+    },
 }
 
 
 def choose_language() -> str:
-    answer = input(MESSAGES["zh"]["choose_lang"]).strip().lower()
-    return "en" if answer == "en" else "zh"
+    answer = input(MESSAGES["en"]["choose_lang"]).strip().lower()
+    return "zh" if answer == "zh" else "en"
 
 
 def collect_targets(root_dir: str, messages, delete_nfo: bool = False, delete_theme: bool = False):
@@ -88,8 +88,10 @@ def collect_targets(root_dir: str, messages, delete_nfo: bool = False, delete_th
     scanned_subdirs = 0
 
     for current_dir, dirnames, filenames in os.walk(root_dir, topdown=True):
+        # The root dir itself is not processed for deletion, but its subdirs are traversed
         # 根目录本身不处理删除逻辑，但继续遍历它的子目录
         if current_dir == root_dir:
+            # .deletedByTMM under root is deleted as a whole; prevent os.walk from descending into it
             # 根目录下的 .deletedByTMM 文件夹整体删除，阻止 os.walk 进入其内部
             if ".deletedByTMM" in dirnames:
                 deleted_by_tmm_path = os.path.join(root_dir, ".deletedByTMM")
@@ -102,15 +104,19 @@ def collect_targets(root_dir: str, messages, delete_nfo: bool = False, delete_th
             continue
         scanned_subdirs += 1
 
+        # If a directory contains .ignore, skip its entire subtree
         # 如果当前目录包含 .ignore，则跳过该目录整棵子树
         if ".ignore" in filenames:
             skipped_ignore_trees.append(current_dir)
             print(messages["skip_ignore_tree"].format(path=current_dir))
-            dirnames.clear()  # 阻止 os.walk 继续进入其子目录
+            dirnames.clear()
+            # Prevent os.walk from descending into subdirectories
+            # 阻止 os.walk 继续进入其子目录
             continue
 
         planned_filenames = []
 
+        # Collect files to delete in the current directory
         # 收集当前目录下要删除的文件
         for filename in filenames:
             _, ext = os.path.splitext(filename)
@@ -118,6 +124,7 @@ def collect_targets(root_dir: str, messages, delete_nfo: bool = False, delete_th
                 files_to_delete.append(os.path.join(current_dir, filename))
                 planned_filenames.append(filename)
 
+        # Collect .actors directory (and avoid recursing into it)
         # 收集 .actors 文件夹（并避免继续遍历它）
         has_actors_dir = False
         if ".actors" in dirnames:
@@ -167,6 +174,7 @@ def apply_deletion(files_to_delete, dirs_to_delete, messages):
 
 def main(root_dir: str):
     messages = MESSAGES[choose_language()]
+    # Ask whether to delete theme.mp3 files (default: no)
     # 询问是否删除 theme.mp3 文件（默认：否）
     theme_answer = input(messages["ask_delete_theme"]).strip().lower()
     delete_theme = theme_answer in ("y", "yes")
@@ -175,6 +183,7 @@ def main(root_dir: str):
     else:
         print(messages["theme_no"])
 
+    # Ask whether to delete .nfo files (default: no)
     # 询问是否删除 .nfo 文件（默认：否）
     nfo_answer = input(messages["ask_delete_nfo"]).strip().lower()
     delete_nfo = nfo_answer in ("y", "yes")
@@ -204,6 +213,7 @@ def main(root_dir: str):
         print(messages["nothing_to_delete"])
         return
 
+    # Phase 2: confirm then apply deletion
     # 第二阶段：确认后执行删除
     confirm = input(messages["confirm_delete"]).strip().lower()
     if confirm != "yes":
@@ -221,9 +231,12 @@ def main(root_dir: str):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="先预览后确认：删除无 .ignore 目录中的 .jpg/.png/theme.mp3/.nfo 文件，并删除 .actors；遇到 .ignore 跳过整棵子树"
+        description=(
+            "Preview then confirm: delete .jpg/.png/theme.mp3/.nfo files in directories without .ignore, also delete .actors; skip subtrees with .ignore"
+            "先预览后确认：删除无 .ignore 目录中的 .jpg/.png/theme.mp3/.nfo 文件，并删除 .actors；遇到 .ignore 跳过整棵子树"
+        )
     )
-    parser.add_argument("root_dir", help="要扫描的根目录路径")
+    parser.add_argument("root_dir", help="Root directory path to scan / 要扫描的根目录路径")
     args = parser.parse_args()
 
     main(args.root_dir)

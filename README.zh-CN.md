@@ -1,8 +1,8 @@
 # emby-tmm-library-tools（中文说明）
 
-用于清理和维护 Emby 媒体库中 tinyMediaManager 相关文件的 Python 脚本工具集。
+[English](README.md) | [简体中文](README_zh-CN.md)
 
-English documentation: [README.md](README.md)
+用于清理和维护 Emby 媒体库中 tinyMediaManager 相关文件的 Python 脚本工具集。
 
 ## 功能
 

@@ -1,8 +1,8 @@
 # emby-tmm-library-tools
 
-Utility Python scripts to clean and maintain tinyMediaManager files for Emby media libraries.
+[English](README.md) | [简体中文](README_zh-CN.md)
 
-中文文档请见：[README.zh-CN.md](README.zh-CN.md)
+Utility Python scripts to clean and maintain tinyMediaManager files for Emby media libraries.
 
 ## Features
 
